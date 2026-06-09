@@ -1,5 +1,5 @@
-# images/dfir/build.sh
 #!/bin/bash
+# images/dfir/build.sh
 set -e
 
 IMAGE_NAME="toth-dfir"
