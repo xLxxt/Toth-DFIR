@@ -1,0 +1,43 @@
+services:
+  toth-base:
+    image: toth-base:0.1.0
+    container_name: toth-base
+    network_mode: none
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${TOTH_WORKSPACE}/cases:/cases
+      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+
+  toth-dfir:
+    image: toth-dfir:0.1.0
+    container_name: toth-dfir
+    network_mode: none
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${TOTH_WORKSPACE}/cases:/cases
+      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+
+  toth-malware:
+    image: toth-malware:0.1.0
+    container_name: toth-malware
+    network_mode: none
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${TOTH_WORKSPACE}/cases:/cases
+      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+
+  toth-network:
+    image: toth-network:0.1.0
+    container_name: toth-network
+    network_mode: bridge
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${TOTH_WORKSPACE}/cases:/cases
+      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
