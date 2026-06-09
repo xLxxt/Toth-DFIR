@@ -1,0 +1,14 @@
+name: build-image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f images/base/Dockerfile -t toth-base:0.1.0 .
+      - run: docker build -f images/dfir/Dockerfile -t toth-dfir:0.1.0 .
+      - run: docker build -f images/malware/Dockerfile -t toth-malware:0.1.0 .
+      - run: docker build -f images/network/Dockerfile -t toth-network:0.1.0 .

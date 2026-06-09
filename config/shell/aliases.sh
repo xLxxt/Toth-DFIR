@@ -143,7 +143,7 @@ pcap-smb()   { tshark -r "$1" -Y "smb || smb2" -T fields -e ip.src -e ip.dst -e 
 # =============================================================================
 alias regripper='perl /opt/toth/tools/regripper/rip.pl'
 alias reg-hive='regripper -r'
-alias reg-all='regripper -r "$1" -a'
+reg-all() { perl /opt/toth/tools/regripper/rip.pl -r "$1" -a; }
 alias reg-plugins='regripper -l'
 
 # =============================================================================
