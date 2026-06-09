@@ -1,4 +1,5 @@
-FROM toth-base:0.1.0
+ARG BASE_IMAGE=toth-base:0.1.0
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="Toth Network"
 LABEL org.opencontainers.image.description="Blue Team Docker Distribution - Network Forensics"

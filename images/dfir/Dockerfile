@@ -1,4 +1,5 @@
-FROM toth-base:0.1.0
+ARG BASE_IMAGE=toth-base:0.1.0
+FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="DFIR-Toth DFIR"
 LABEL org.opencontainers.image.description="DFIR-Toth - Blue Team Docker Distribution - DFIR Image"
@@ -8,6 +9,7 @@ LABEL org.opencontainers.image.source="https://github.com/xLxxt/dfir-toth"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG TARGETARCH
 
 USER root
 
@@ -99,23 +101,26 @@ RUN git clone https://github.com/volatilityfoundation/volatility3.git \
     && chmod +x /opt/toth/tools/volatility3/vol.py
 
 # chainsaw
-RUN mkdir -p /opt/toth/tools/chainsaw \
-    && curl -sL https://github.com/WithSecureLabs/chainsaw/releases/download/v2.9.1/chainsaw_x86_64-unknown-linux-gnu.tar.gz \
+RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac \
+    && mkdir -p /opt/toth/tools/chainsaw \
+    && curl -sL "https://github.com/WithSecureLabs/chainsaw/releases/download/v2.16.0/chainsaw_${CS_ARCH}-unknown-linux-gnu.tar.gz" \
         | tar -xz -C /opt/toth/tools/chainsaw \
     && git clone --depth 1 https://github.com/WithSecureLabs/chainsaw.git \
         /opt/toth/tools/chainsaw-rules \
     && ln -s /opt/toth/tools/chainsaw-rules/rules /opt/toth/tools/chainsaw/rules \
     && ln -s /opt/toth/tools/chainsaw-rules/mappings /opt/toth/tools/chainsaw/mappings \
-    && ln -s /opt/toth/tools/chainsaw/chainsaw /usr/local/bin/chainsaw
+    && ln -s /opt/toth/tools/chainsaw/chainsaw/chainsaw /usr/local/bin/chainsaw
 
 # hayabusa
-RUN mkdir -p /opt/toth/tools/hayabusa \
+RUN case "${TARGETARCH}" in arm64) HAYA_ARCH=aarch64 ;; *) HAYA_ARCH=x64 ;; esac \
+    && mkdir -p /opt/toth/tools/hayabusa \
     && wget -q \
-        "https://github.com/Yamato-Security/hayabusa/releases/download/v3.9.0/hayabusa-3.9.0-lin-x64-musl.zip" \
+        "https://github.com/Yamato-Security/hayabusa/releases/download/v3.9.0/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu.zip" \
         -O /tmp/hayabusa.zip \
-    && unzip /tmp/hayabusa.zip -d /opt/toth/tools/hayabusa \
-    && chmod +x /opt/toth/tools/hayabusa/hayabusa-*-lin-x64-musl \
-    && ln -s /opt/toth/tools/hayabusa/hayabusa-*-lin-x64-musl /usr/local/bin/hayabusa \
+    && unzip -q /tmp/hayabusa.zip -d /opt/toth/tools/hayabusa \
+    && chmod +x "/opt/toth/tools/hayabusa/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu" \
+    && ln -s "/opt/toth/tools/hayabusa/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu" /opt/toth/tools/hayabusa/hayabusa \
+    && ln -s /opt/toth/tools/hayabusa/hayabusa /usr/local/bin/hayabusa \
     && rm /tmp/hayabusa.zip
 
 # Sigma rules
