@@ -73,7 +73,9 @@ if [ -d "/opt/toth/tools/capa" ]; then
     check_cmd "Capa" "capa"
     check_cmd "YARA" "yara"
     check_cmd "ClamAV" "clamscan"
-    check_cmd "DIE" "diec"
+    if [ "$(uname -m)" = "x86_64" ]; then
+        check_cmd "DIE" "diec"
+    fi
     check_cmd "UPX" "upx"
     check_cmd "FLOSS" "floss"
     check_py  "pefile" "pefile"
