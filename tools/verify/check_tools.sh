@@ -13,8 +13,8 @@ RESET='\033[0m'
 # =============================================================================
 # HELPERS
 # =============================================================================
-ok()   { echo -e "  ${GREEN}[✓]${RESET} $1"; }
-fail() { echo -e "  ${RED}[✗]${RESET} $1"; MISSING=$((MISSING+1)); }
+ok()   { echo -e "  ${GREEN}[✓]${RESET} $1"; return 0; }
+fail() { echo -e "  ${RED}[✗]${RESET} $1"; MISSING=$((MISSING+1)); return 1; }
 warn() { echo -e "  ${YELLOW}[~]${RESET} $1"; }
 section() { echo -e "\n${BOLD}${BLUE}>>> $1${RESET}"; }
 
@@ -28,6 +28,12 @@ check_py() {
     local name=$1
     local module=$2
     python3 -c "import $module" &>/dev/null && ok "$name" || fail "$name"
+}
+
+check_path() {
+    local name=$1
+    local path=$2
+    [ -e "$path" ] && ok "$name" || fail "$name"
 }
 
 MISSING=0
@@ -61,7 +67,7 @@ if [ -d "/opt/toth/tools/volatility3" ]; then
     check_cmd "Volatility3" "vol3"
     check_cmd "Chainsaw" "chainsaw"
     check_cmd "Hayabusa" "hayabusa"
-    check_cmd "Sigma rules" "ls /opt/toth/rules/sigma" && ok "Sigma rules" || fail "Sigma rules"
+    check_path "Sigma rules" "/opt/toth/rules/sigma"
     python3 -c "import plaso" &>/dev/null && ok "Plaso" || fail "Plaso"
 fi
 

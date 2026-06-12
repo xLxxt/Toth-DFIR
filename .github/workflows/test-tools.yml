@@ -4,14 +4,56 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - ".github/workflows/test-tools.yml"
+      - "docker-compose.yml"
       - "images/**"
       - "config/**"
       - "tools/**"
+      - "wrapper/**"
 
 jobs:
-  base:
+  compose-config:
+    name: Validate Compose config
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f images/base/Dockerfile -t toth-base:0.1.0 .
-      - run: docker run --rm toth-base:0.1.0 bash /opt/toth/scripts/check_tools.sh
+      - name: Validate docker-compose.yml
+        run: docker compose config
+
+  image-tools:
+    name: Build and test ${{ matrix.profile }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: base
+            image: toth-base
+            dockerfile: images/base/Dockerfile
+          - profile: dfir
+            image: toth-dfir
+            dockerfile: images/dfir/Dockerfile
+          - profile: malware
+            image: toth-malware
+            dockerfile: images/malware/Dockerfile
+          - profile: network
+            image: toth-network
+            dockerfile: images/network/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build base image
+        run: docker build -f images/base/Dockerfile -t toth-base:0.1.0 .
+
+      - name: Build profile image
+        if: ${{ matrix.profile != 'base' }}
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE=toth-base:0.1.0 \
+            -f "${{ matrix.dockerfile }}" \
+            -t "${{ matrix.image }}:0.1.0" \
+            .
+
+      - name: Run tool checks
+        run: docker run --rm "${{ matrix.image }}:0.1.0" bash /opt/toth/scripts/check_tools.sh
