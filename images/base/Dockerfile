@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.title="DFIR-Toth Base"
 LABEL org.opencontainers.image.description="DFIR-Toth - Blue Team Docker Distribution - Base Image"
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.authors="xLxxt"
-LABEL org.opencontainers.image.source="https://github.com/xLxxt/dfir-toth"
+LABEL org.opencontainers.image.source="https://github.com/xLxxt/Toth-DFIR"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ARG DEBIAN_FRONTEND=noninteractive
