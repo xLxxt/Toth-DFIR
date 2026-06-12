@@ -74,7 +74,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Compatibility links
-RUN ln -s "$(command -v fdfind)" /usr/local/bin/fd
+RUN ln -s "$(command -v fdfind)" /usr/local/bin/fd \
+    && if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then \
+        ln -s "$(command -v batcat)" /usr/local/bin/bat; \
+    fi
 
 # Install smoke checks
 RUN command -v curl \

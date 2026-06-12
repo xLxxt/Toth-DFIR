@@ -1,44 +1,110 @@
 # Tools List
 
-This list tracks the main tools installed by each Toth profile.
+This list tracks the main tools installed by each Toth profile. It is organized
+by runtime profile because every specialized image inherits the `base` tools.
 
 ## Base
 
-- curl, wget, git
-- Python 3 and pip
-- jq, miller, sqlite3
-- ripgrep, fd, fzf, bat, lnav
-- binwalk, foremost, exiftool
+General shell and navigation:
+
+- bash, zsh
+- vim, nano
+- tmux
+- less, tree
+- fzf
+- bat
+- ripgrep (`rg`)
+- fd
+- pv
+
+Archives and file inspection:
+
+- file
+- strings and binutils
+- xxd
+- unzip, tar
+- p7zip / `7z`
+- unar
+- binwalk
+- foremost
+- exiftool
+- hexyl
+
+Data and log handling:
+
+- jq
+- miller (`mlr`)
+- lnav
+- sqlite3
+
+Network helpers:
+
+- curl, wget
+- net-tools
+- dnsutils
+
+Python and development basics:
+
+- Python 3
+- pip
+- python3-venv
+- git
 
 ## DFIR
 
-- Volatility 3
+The DFIR image inherits all base tools and adds:
+
+- Volatility 3 (`vol3`)
 - bulk_extractor
-- libpff / pffexport
+- libesedb-utils
+- libpff / `pffexport`
 - RegRipper
+- python-evtx
 - Plaso
+- sigma-cli
+- Timesketch API client
 - Chainsaw
 - Hayabusa
 - Sigma rules
 
 ## Malware
 
+The malware image inherits all base tools and adds:
+
 - YARA and yara-python
 - capa
 - FLOSS
-- Detect It Easy on amd64
-- oletools
-- pefile, pyelftools, capstone
+- Detect It Easy (`diec`) on amd64
 - ClamAV
 - UPX
+- oletools
+- pefile
+- pyelftools
+- capstone
+- pdfminer.six
+- peepdf-3
 
 ## Network
+
+The network image inherits all base tools and adds:
 
 - tshark
 - tcpdump
 - nmap
-- netcat
-- Zeek
+- netcat (`nc`)
+- Wireshark common files
+- Zeek and zeekctl
 - Suricata
+
+## Not installed yet
+
+These candidates are tracked for later lots:
+
+- Base/log analysis: zq / zed
+- Malware: ssdeep, tlsh, radare2, strace, ltrace, fakenet-ng, inetsim, Ghidra
+- Network: whois, ngrep, tcpflow, dnstwist, RITA
+- Threat intel: ioc-finder, unfurl, vt-cli, abuse-cli, CyberChef CLI, PyMISP
+- DFIR/Windows: impacket, Volatility 2, Autopsy, Zimmerman tools
+- Cloud: aws-cli, azure-cli, pwsh, trailscraper, stormspotter, o365-investigator
 
 Architecture notes and exact versions live in the Dockerfiles.
