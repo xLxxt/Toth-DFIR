@@ -102,6 +102,8 @@ if [ -d "/opt/toth/tools/capa" ]; then
     check_cmd "Capa" "capa"
     check_cmd "YARA" "yara"
     check_cmd "ClamAV" "clamscan"
+    check_cmd "ssdeep"
+    check_cmd "TLSH" "tlsh"
     if [ "$(uname -m)" = "x86_64" ]; then
         check_cmd "DIE" "diec"
     fi
@@ -125,6 +127,9 @@ if command -v tshark &>/dev/null || command -v zeek &>/dev/null; then
     check_cmd "tcpdump"
     check_cmd "nmap"
     check_cmd "netcat" "nc"
+    check_cmd "whois"
+    check_cmd "ngrep"
+    check_cmd "tcpflow"
     check_cmd "Zeek" "zeek"
     check_cmd "Zeekctl" "zeekctl"
     check_cmd "Suricata" "suricata"

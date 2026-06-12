@@ -30,6 +30,9 @@ RUN apt-get update \
         tcpdump \
         nmap \
         netcat-openbsd \
+        whois \
+        ngrep \
+        tcpflow \
         wireshark-common \
         software-properties-common \
         gnupg \
@@ -57,6 +60,9 @@ RUN command -v tshark \
     && command -v tcpdump \
     && command -v nmap \
     && command -v nc \
+    && command -v whois \
+    && command -v ngrep \
+    && command -v tcpflow \
     && command -v zeek \
     && command -v zeekctl \
     && command -v suricata

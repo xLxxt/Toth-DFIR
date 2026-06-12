@@ -76,6 +76,8 @@ The malware image inherits all base tools and adds:
 - FLOSS
 - Detect It Easy (`diec`) on amd64
 - ClamAV
+- ssdeep
+- TLSH (`tlsh`)
 - UPX
 - oletools
 - pefile
@@ -92,6 +94,9 @@ The network image inherits all base tools and adds:
 - tcpdump
 - nmap
 - netcat (`nc`)
+- whois
+- ngrep
+- tcpflow
 - Wireshark common files
 - Zeek and zeekctl
 - Suricata
@@ -101,8 +106,8 @@ The network image inherits all base tools and adds:
 These candidates are tracked for later lots:
 
 - Base/log analysis: zq / zed
-- Malware: ssdeep, tlsh, radare2, strace, ltrace, fakenet-ng, inetsim, Ghidra
-- Network: whois, ngrep, tcpflow, dnstwist, RITA
+- Malware: radare2, strace, ltrace, fakenet-ng, inetsim, Ghidra
+- Network: dnstwist, RITA
 - Threat intel: ioc-finder, unfurl, vt-cli, abuse-cli, CyberChef CLI, PyMISP
 - DFIR/Windows: impacket, Volatility 2, Autopsy, Zimmerman tools
 - Cloud: aws-cli, azure-cli, pwsh, trailscraper, stormspotter, o365-investigator
