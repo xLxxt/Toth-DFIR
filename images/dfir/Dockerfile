@@ -1,6 +1,7 @@
 ARG BASE_IMAGE=toth-base:0.1.0
 FROM ${BASE_IMAGE}
 
+# Metadata
 LABEL org.opencontainers.image.title="DFIR-Toth DFIR"
 LABEL org.opencontainers.image.description="DFIR-Toth - Blue Team Docker Distribution - DFIR Image"
 LABEL org.opencontainers.image.version="0.1.0"
@@ -8,15 +9,19 @@ LABEL org.opencontainers.image.authors="xLxxt"
 LABEL org.opencontainers.image.source="https://github.com/xLxxt/Toth-DFIR"
 LABEL org.opencontainers.image.licenses="MIT"
 
+# Build arguments
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TOTH_VERSION="0.1.0"
 ARG TARGETARCH
+
+# Runtime environment
+ENV TOTH_VERSION=${TOTH_VERSION}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
 
-# Dépendances système
+# System packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         pkg-config \
@@ -44,7 +49,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# bulk_extractor — compilation depuis les sources
+# Tool installation
 RUN git clone --depth 1 --recurse-submodules \
         https://github.com/simsong/bulk_extractor.git \
         /tmp/bulk_extractor \
@@ -55,7 +60,6 @@ RUN git clone --depth 1 --recurse-submodules \
     && make install \
     && rm -rf /tmp/bulk_extractor
 
-# libbfio — dépendance de libpff
 RUN git clone --depth 1 --recurse-submodules \
         https://github.com/libyal/libbfio.git \
         /tmp/libbfio \
@@ -68,7 +72,6 @@ RUN git clone --depth 1 --recurse-submodules \
     && ldconfig \
     && rm -rf /tmp/libbfio
 
-# libpff — compilation depuis les sources (pffexport)
 RUN git clone --depth 1 --recurse-submodules \
         https://github.com/libyal/libpff.git \
         /tmp/libpff \
@@ -81,13 +84,11 @@ RUN git clone --depth 1 --recurse-submodules \
     && ldconfig \
     && rm -rf /tmp/libpff
 
-# regripper
 RUN git clone --depth 1 https://github.com/keydet89/RegRipper3.0.git \
         /opt/toth/tools/regripper \
     && chmod +x /opt/toth/tools/regripper/rip.pl \
     && ln -s /opt/toth/tools/regripper/rip.pl /usr/local/bin/regripper
 
-# Python — upgrade + packages
 RUN pip3 install --upgrade pip setuptools wheel \
     && pip3 install \
         python-evtx \
@@ -95,7 +96,6 @@ RUN pip3 install --upgrade pip setuptools wheel \
         timesketch-api-client \
         plaso
 
-# volatility3
 RUN git clone https://github.com/volatilityfoundation/volatility3.git \
         /opt/toth/tools/volatility3 \
     && cd /opt/toth/tools/volatility3 \
@@ -103,7 +103,6 @@ RUN git clone https://github.com/volatilityfoundation/volatility3.git \
     && ln -s /opt/toth/tools/volatility3/vol.py /usr/local/bin/vol3 \
     && chmod +x /opt/toth/tools/volatility3/vol.py
 
-# chainsaw
 RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac \
     && mkdir -p /opt/toth/tools/chainsaw \
     && curl -sL "https://github.com/WithSecureLabs/chainsaw/releases/download/v2.16.0/chainsaw_${CS_ARCH}-unknown-linux-gnu.tar.gz" \
@@ -114,7 +113,6 @@ RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac 
     && ln -s /opt/toth/tools/chainsaw-rules/mappings /opt/toth/tools/chainsaw/mappings \
     && ln -s /opt/toth/tools/chainsaw/chainsaw/chainsaw /usr/local/bin/chainsaw
 
-# hayabusa
 RUN case "${TARGETARCH}" in arm64) HAYA_ARCH=aarch64 ;; *) HAYA_ARCH=x64 ;; esac \
     && mkdir -p /opt/toth/tools/hayabusa \
     && wget -q \
@@ -126,11 +124,10 @@ RUN case "${TARGETARCH}" in arm64) HAYA_ARCH=aarch64 ;; *) HAYA_ARCH=x64 ;; esac
     && ln -s /opt/toth/tools/hayabusa/hayabusa /usr/local/bin/hayabusa \
     && rm /tmp/hayabusa.zip
 
-# Sigma rules
 RUN git clone --depth 1 https://github.com/SigmaHQ/sigma.git \
         /opt/toth/rules/sigma
 
-# Arborescence + permissions
+# Workspace and permissions
 RUN mkdir -p \
         /cases \
         /opt/toth/output/volatility \
@@ -143,6 +140,7 @@ RUN mkdir -p \
         /opt/toth/output \
         /cases
 
+# Runtime
 USER analyst
 WORKDIR /cases
 

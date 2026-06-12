@@ -1,5 +1,6 @@
 FROM ubuntu:22.04
 
+# Metadata
 LABEL org.opencontainers.image.title="DFIR-Toth Base"
 LABEL org.opencontainers.image.description="DFIR-Toth - Blue Team Docker Distribution - Base Image"
 LABEL org.opencontainers.image.version="0.1.0"
@@ -7,9 +8,12 @@ LABEL org.opencontainers.image.authors="xLxxt"
 LABEL org.opencontainers.image.source="https://github.com/xLxxt/Toth-DFIR"
 LABEL org.opencontainers.image.licenses="MIT"
 
+# Build arguments
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TOTH_VERSION="0.1.0"
+ARG TARGETARCH
 
+# Runtime environment
 ENV TOTH_VERSION=${TOTH_VERSION} \
     TOTH_HOME="/opt/toth" \
     TOTH_CASES="/cases" \
@@ -24,6 +28,9 @@ ENV TOTH_VERSION=${TOTH_VERSION} \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+USER root
+
+# System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -66,19 +73,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s $(which fdfind) /usr/local/bin/fd
+# Compatibility links
+RUN ln -s "$(command -v fdfind)" /usr/local/bin/fd
 
+# Runtime user
 RUN groupadd -g 1000 analyst \
     && useradd -m -u 1000 -g analyst -s /bin/bash analyst
 
+# Workspace and permissions
 RUN mkdir -p \
-    ${TOTH_HOME} \
-    ${TOTH_HOME}/output \
-    ${TOTH_HOME}/scripts \
-    ${TOTH_HOME}/tools \
-    ${TOTH_CASES} \
+        ${TOTH_HOME} \
+        ${TOTH_HOME}/output \
+        ${TOTH_HOME}/scripts \
+        ${TOTH_HOME}/tools \
+        ${TOTH_CASES} \
     && chown -R analyst:analyst ${TOTH_HOME} ${TOTH_CASES}
 
+# Shell configuration and helper scripts
 COPY --chown=analyst:analyst config/shell/aliases.sh /opt/toth/aliases.sh
 COPY --chown=analyst:analyst tools/verify/check_tools.sh /opt/toth/scripts/check_tools.sh
 
@@ -87,9 +98,11 @@ RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh
 RUN echo 'source /opt/toth/aliases.sh' >> /home/analyst/.bashrc \
     && echo 'export PATH=$PATH:/opt/toth/tools' >> /home/analyst/.bashrc
 
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD bash /opt/toth/scripts/check_tools.sh || exit 1
 
+# Runtime
 USER analyst
 WORKDIR /cases
 
