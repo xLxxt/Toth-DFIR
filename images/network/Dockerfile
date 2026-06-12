@@ -52,6 +52,15 @@ RUN add-apt-repository ppa:oisf/suricata-stable -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install smoke checks
+RUN command -v tshark \
+    && command -v tcpdump \
+    && command -v nmap \
+    && command -v nc \
+    && command -v zeek \
+    && command -v zeekctl \
+    && command -v suricata
+
 # Runtime
 USER analyst
 WORKDIR /cases

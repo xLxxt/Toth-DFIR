@@ -13,6 +13,8 @@ LABEL org.opencontainers.image.licenses="MIT"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TOTH_VERSION="0.1.0"
 ARG TARGETARCH
+ARG CHAINSAW_VERSION="2.16.0"
+ARG HAYABUSA_VERSION="3.9.0"
 
 # Runtime environment
 ENV TOTH_VERSION=${TOTH_VERSION}
@@ -105,8 +107,11 @@ RUN git clone https://github.com/volatilityfoundation/volatility3.git \
 
 RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac \
     && mkdir -p /opt/toth/tools/chainsaw \
-    && curl -sL "https://github.com/WithSecureLabs/chainsaw/releases/download/v2.16.0/chainsaw_${CS_ARCH}-unknown-linux-gnu.tar.gz" \
-        | tar -xz -C /opt/toth/tools/chainsaw \
+    && curl -fsSL \
+        "https://github.com/WithSecureLabs/chainsaw/releases/download/v${CHAINSAW_VERSION}/chainsaw_${CS_ARCH}-unknown-linux-gnu.tar.gz" \
+        -o /tmp/chainsaw.tar.gz \
+    && tar -xzf /tmp/chainsaw.tar.gz -C /opt/toth/tools/chainsaw \
+    && rm -f /tmp/chainsaw.tar.gz \
     && git clone --depth 1 https://github.com/WithSecureLabs/chainsaw.git \
         /opt/toth/tools/chainsaw-rules \
     && ln -s /opt/toth/tools/chainsaw-rules/rules /opt/toth/tools/chainsaw/rules \
@@ -115,17 +120,26 @@ RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac 
 
 RUN case "${TARGETARCH}" in arm64) HAYA_ARCH=aarch64 ;; *) HAYA_ARCH=x64 ;; esac \
     && mkdir -p /opt/toth/tools/hayabusa \
-    && wget -q \
-        "https://github.com/Yamato-Security/hayabusa/releases/download/v3.9.0/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu.zip" \
-        -O /tmp/hayabusa.zip \
+    && curl -fsSL \
+        "https://github.com/Yamato-Security/hayabusa/releases/download/v${HAYABUSA_VERSION}/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu.zip" \
+        -o /tmp/hayabusa.zip \
     && unzip -q /tmp/hayabusa.zip -d /opt/toth/tools/hayabusa \
-    && chmod +x "/opt/toth/tools/hayabusa/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu" \
-    && ln -s "/opt/toth/tools/hayabusa/hayabusa-3.9.0-lin-${HAYA_ARCH}-gnu" /opt/toth/tools/hayabusa/hayabusa \
+    && chmod +x "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu" \
+    && ln -s "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu" /opt/toth/tools/hayabusa/hayabusa \
     && ln -s /opt/toth/tools/hayabusa/hayabusa /usr/local/bin/hayabusa \
-    && rm /tmp/hayabusa.zip
+    && rm -f /tmp/hayabusa.zip
 
 RUN git clone --depth 1 https://github.com/SigmaHQ/sigma.git \
         /opt/toth/rules/sigma
+
+# Install smoke checks
+RUN command -v bulk_extractor \
+    && command -v pffexport \
+    && command -v regripper \
+    && command -v vol3 \
+    && command -v chainsaw \
+    && command -v hayabusa \
+    && test -d /opt/toth/rules/sigma
 
 # Workspace and permissions
 RUN mkdir -p \

@@ -76,6 +76,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Compatibility links
 RUN ln -s "$(command -v fdfind)" /usr/local/bin/fd
 
+# Install smoke checks
+RUN command -v curl \
+    && command -v wget \
+    && command -v git \
+    && command -v python3 \
+    && command -v pip3 \
+    && command -v jq \
+    && command -v fd \
+    && command -v rg \
+    && command -v binwalk \
+    && command -v exiftool
+
 # Runtime user
 RUN groupadd -g 1000 analyst \
     && useradd -m -u 1000 -g analyst -s /bin/bash analyst
