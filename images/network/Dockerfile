@@ -49,6 +49,10 @@ RUN echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_2
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Compatibility links
+RUN ln -s /opt/zeek/bin/zeek /usr/local/bin/zeek \
+    && ln -s /opt/zeek/bin/zeekctl /usr/local/bin/zeekctl
+
 RUN add-apt-repository ppa:oisf/suricata-stable -y \
     && apt-get update \
     && apt-get install -y --no-install-recommends suricata \
