@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env.local
+
+# Test and build output
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Toth local workspaces and generated cases
+toth/workspace/
+workspace/
+cases/
+output/
+
+# Editor metadata
+.vscode/
+.idea/

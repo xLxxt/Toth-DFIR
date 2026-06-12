@@ -1,0 +1,36 @@
+# Git metadata
+.git
+.gitignore
+.github
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Documentation and repository metadata
+README.md
+LICENSE
+docs/
+assets/
+tests/
+
+# Local caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+
+# Development-only project files
+wrapper/
+Makefile
+install.sh
+
+# Empty or future-only installer script trees are not used by Dockerfiles yet
+tools/install/
+
+# Build outputs and local case data
+workspace/
+cases/
+output/
+*.log
