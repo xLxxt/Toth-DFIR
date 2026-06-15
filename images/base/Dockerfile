@@ -108,7 +108,8 @@ RUN mkdir -p \
 COPY --chown=analyst:analyst config/shell/aliases.sh /opt/toth/aliases.sh
 COPY --chown=analyst:analyst tools/verify/check_tools.sh /opt/toth/scripts/check_tools.sh
 
-RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh
+RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh \
+    && ln -s /opt/toth/scripts/check_tools.sh /usr/local/bin/toth-check
 
 RUN echo 'source /opt/toth/aliases.sh' >> /home/analyst/.bashrc \
     && echo 'export PATH=$PATH:/opt/toth/tools' >> /home/analyst/.bashrc
