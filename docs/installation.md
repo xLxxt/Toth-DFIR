@@ -115,6 +115,7 @@ Manual installation is useful when developing Toth itself:
 ```bash
 git clone --branch dev https://github.com/xLxxt/Toth-DFIR.git
 cd Toth-DFIR
+cp .env.example .env
 make build-base
 make build-dfir
 make build-malware

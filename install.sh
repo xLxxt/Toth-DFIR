@@ -80,6 +80,7 @@ else
 fi
 
 mkdir -p "$BIN_DIR" "$WORKSPACE/cases" "$WORKSPACE/output"
+printf 'TOTH_WORKSPACE=%s\n' "$WORKSPACE" > "$INSTALL_DIR/.env"
 
 printf '#!/bin/bash\nexec python3 "%s/wrapper/toth.py" "$@"\n' "$INSTALL_DIR" > "$BIN_DIR/toth"
 chmod +x "$BIN_DIR/toth"

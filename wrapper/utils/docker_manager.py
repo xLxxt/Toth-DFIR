@@ -1,10 +1,13 @@
+import os
 import subprocess
 
 from utils import config
 
 
 def _compose(args):
-    return subprocess.call(["docker", "compose"] + args, cwd=str(config.ROOT))
+    env = os.environ.copy()
+    env.setdefault("TOTH_WORKSPACE", config.WORKSPACE)
+    return subprocess.call(["docker", "compose"] + args, cwd=str(config.ROOT), env=env)
 
 
 def up(svc):

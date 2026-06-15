@@ -89,8 +89,8 @@ toth update
 ```
 
 `toth exec <profile>` starts the container if needed and drops you into a
-shell. Your cases live under `$TOTH_WORKSPACE` (set in `.env`) and are
-mounted at `/cases`.
+shell. Your cases live under `$TOTH_WORKSPACE` or `~/toth/workspace` by default,
+and are mounted at `/cases`.
 
 Profiles: `base`, `dfir`, `malware`, `network`.
 

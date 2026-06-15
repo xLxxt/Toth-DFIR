@@ -6,8 +6,8 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ${TOTH_WORKSPACE}/cases:/cases
-      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-dfir:
     image: toth-dfir:0.1.0
@@ -16,8 +16,8 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ${TOTH_WORKSPACE}/cases:/cases
-      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-malware:
     image: toth-malware:0.1.0
@@ -26,8 +26,8 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ${TOTH_WORKSPACE}/cases:/cases
-      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-network:
     image: toth-network:0.1.0
@@ -36,8 +36,8 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ${TOTH_WORKSPACE}/cases:/cases
-      - ${TOTH_WORKSPACE}/output:/opt/toth/output
+      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
     cap_add:
       - NET_ADMIN
       - NET_RAW
