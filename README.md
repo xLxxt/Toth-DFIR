@@ -57,6 +57,9 @@ and adds the `toth` command to `~/.local/bin`.
 
 Requirements: `git`, `docker`, `python3`.
 
+Detailed install instructions, Fedora notes, private repository setup and
+troubleshooting are available in [docs/installation.md](docs/installation.md).
+
 On Windows, use WSL2 or clone the repository and call the wrapper directly
 with `python wrapper\toth.py`.
 
@@ -90,6 +93,9 @@ shell. Your cases live under `$TOTH_WORKSPACE` (set in `.env`) and are
 mounted at `/cases`.
 
 Profiles: `base`, `dfir`, `malware`, `network`.
+
+See [docs/usage.md](docs/usage.md) for workspace layout, tool checks and
+practical DFIR, malware and network examples.
 
 ---
 
