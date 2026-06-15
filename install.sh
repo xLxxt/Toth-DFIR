@@ -7,6 +7,16 @@ INSTALL_DIR="${TOTH_DIR:-$HOME/.toth}"
 BIN_DIR="$HOME/.local/bin"
 WORKSPACE="${TOTH_WORKSPACE:-$HOME/toth/workspace}"
 
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    target_user="${SUDO_USER:-your-user}"
+    echo "[!] Do not run this installer with sudo or as root."
+    echo "[!] It must install Toth for your normal user, not under /root."
+    echo "[!] If Docker needs sudo, add your user to the docker group first:"
+    printf '    sudo usermod -aG docker "%s"\n' "$target_user"
+    echo "    newgrp docker"
+    exit 1
+fi
+
 for cmd in git docker python3; do
     command -v "$cmd" >/dev/null 2>&1 || { echo "[!] $cmd is required"; exit 1; }
 done
