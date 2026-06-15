@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO_URL="https://github.com/xLxxt/Toth-DFIR.git"
+REPO_URL="${TOTH_REPO_URL:-https://github.com/xLxxt/Toth-DFIR.git}"
 BRANCH="${TOTH_BRANCH:-dev}"
 INSTALL_DIR="${TOTH_DIR:-$HOME/.toth}"
 BIN_DIR="$HOME/.local/bin"
@@ -63,9 +63,20 @@ docker info >/dev/null 2>&1 || { echo "[!] docker daemon is not running"; exit 1
 if [ -d "$INSTALL_DIR/.git" ]; then
     echo "[+] Updating existing install in $INSTALL_DIR"
     git -C "$INSTALL_DIR" pull --ff-only
+elif [ -e "$INSTALL_DIR" ]; then
+    echo "[!] $INSTALL_DIR already exists but is not a Git repository"
+    echo "[!] Remove it or set TOTH_DIR to another install directory"
+    exit 1
 else
     echo "[+] Cloning Toth into $INSTALL_DIR"
-    git clone --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
+    echo "[+] Repository: $REPO_URL"
+    if ! git clone --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR"; then
+        echo ""
+        echo "[!] Failed to clone Toth from $REPO_URL"
+        echo "[!] If the repository is private or your HTTPS credentials are not configured, use SSH:"
+        echo "    TOTH_REPO_URL=git@github.com:xLxxt/Toth-DFIR.git ./install.sh"
+        exit 1
+    fi
 fi
 
 mkdir -p "$BIN_DIR" "$WORKSPACE/cases" "$WORKSPACE/output"
