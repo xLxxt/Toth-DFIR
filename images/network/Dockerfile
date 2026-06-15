@@ -53,6 +53,10 @@ RUN echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_2
 RUN ln -s /opt/zeek/bin/zeek /usr/local/bin/zeek \
     && ln -s /opt/zeek/bin/zeekctl /usr/local/bin/zeekctl
 
+# Runtime permissions
+RUN mkdir -p /opt/zeek/spool /opt/zeek/logs \
+    && chown -R analyst:analyst /opt/zeek/spool /opt/zeek/logs
+
 RUN add-apt-repository ppa:oisf/suricata-stable -y \
     && apt-get update \
     && apt-get install -y --no-install-recommends suricata \
