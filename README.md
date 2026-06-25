@@ -80,17 +80,20 @@ make run
 ## Usage
 
 ```bash
+toth list
+toth status
 toth update dfir
 toth start dfir
-toth exec dfir
+toth shell dfir
 toth exec dfir vol3 -h
 toth stop dfir
 toth update
 ```
 
-`toth exec <profile>` starts the container if needed and drops you into a
-shell. Your cases live under `$TOTH_WORKSPACE` or `~/toth/workspace` by default,
-and are mounted at `/cases`.
+`toth shell <profile>` starts the container if needed and drops you into a
+shell. `toth exec <profile> <command>` runs a single command. Your cases live
+under `$TOTH_WORKSPACE` or `~/toth/workspace` by default, and are mounted at
+`/cases`.
 
 Profiles: `base`, `dfir`, `malware`, `network`.
 

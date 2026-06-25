@@ -59,24 +59,39 @@ make build-network
 make build-all
 ```
 
+## List profiles and status
+
+List available profiles and their local image tags:
+
+```bash
+toth list
+```
+
+Show Docker Compose container status:
+
+```bash
+toth status
+```
+
 ## Open a shell
 
 Installed command:
 
 ```bash
-toth exec dfir
-toth exec malware
-toth exec network
+toth shell dfir
+toth shell malware
+toth shell network
 ```
 
 Development command:
 
 ```bash
-python3 wrapper/toth.py exec dfir
+python3 wrapper/toth.py shell dfir
 ```
 
 The wrapper starts the selected Docker Compose service and opens a shell inside
-the container.
+the container. `toth exec <profile>` still works as a backwards-compatible alias
+when no command is provided.
 
 ## Run one command
 
@@ -186,8 +201,8 @@ toth exec network suricata -r /cases/capture.pcap -l /opt/toth/output/suricata
 
 ## Direct Docker usage
 
-The wrapper is the recommended interface, but direct Docker is useful for
-debugging:
+The wrapper now creates the default workspace automatically before Docker
+operations. Direct Docker is still useful for debugging:
 
 ```bash
 docker run --rm -it \

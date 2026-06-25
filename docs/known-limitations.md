@@ -6,10 +6,10 @@ that users and contributors should know before relying on it in a real case.
 ## Project maturity
 
 - The project is currently built around the `dev` branch.
-- The wrapper CLI is intentionally minimal: `start`, `exec`, `stop`, and
-  `update` are available.
-- Advanced wrapper commands such as `list`, `status`, profile templates, and
-  richer error handling are planned for Phase 2.
+- The wrapper CLI supports `list`, `status`, `start`, `shell`, `exec`, `stop`,
+  and `update`.
+- Advanced wrapper features such as profile templates, pull/build selection, and
+  richer user configuration are planned for Phase 2.
 
 ## Installation
 

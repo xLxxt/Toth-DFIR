@@ -29,7 +29,10 @@ access.
 
 The Python wrapper calls Docker Compose for common operations:
 
+- `list`: list available profiles and image tags
+- `status`: show Docker Compose container status
 - `start`: start a profile container
-- `exec`: open a shell or run a command
+- `shell`: open an interactive shell in a profile container
+- `exec`: run a command in a profile container
 - `stop`: stop a profile container
 - `update`: build images
