@@ -113,9 +113,9 @@ Before tagging, verify these workflows pass on the release branch or PR:
 - `lint`
 - `test-tools`
 - `build-image` when manually triggered
+- `publish-image` when manually triggered for the release image tag
 
-For image publication, verify `publish-image` on a test tag or manual dispatch
-before announcing the release.
+For image publication, see [ghcr-publication.md](ghcr-publication.md).
 
 ## 7. Documentation checks
 
@@ -126,6 +126,7 @@ Review the public entry points:
 - `docs/usage.md`
 - `docs/tools-list.md`
 - `docs/known-limitations.md`
+- `docs/ghcr-publication.md`
 
 The documentation should clearly state:
 
@@ -135,14 +136,25 @@ The documentation should clearly state:
 - output mount: `/opt/toth/output`
 - current private/public install behavior
 - known architecture limitations
+- GHCR image tag and visibility
 
-## 8. Tagging
+## 8. GHCR publication
 
-When the release is ready:
+Publish the image set manually from the `publish-image` workflow or with a
+release tag:
 
 ```bash
-git tag -a v0.1.0 -m "Toth v0.1.0"
+git tag -a v0.1.0 -m "Toth images v0.1.0"
 git push origin v0.1.0
 ```
 
-GitHub Actions publishes images to GHCR on `v*` tags.
+After publication, verify:
+
+```bash
+docker pull ghcr.io/xlxxt/toth-dfir:0.1.0
+toth update dfir
+toth shell dfir
+```
+
+GitHub Actions publishes images to GHCR on `v*` tags. If the package is private
+by default, make the GHCR package public from GitHub package settings.

@@ -1,17 +1,19 @@
 ARG BASE_IMAGE=toth-base:0.1.0
 FROM ${BASE_IMAGE}
 
+# Build arguments
+ARG TOTH_VERSION="0.1.0"
+
 # Metadata
 LABEL org.opencontainers.image.title="DFIR-Toth DFIR"
 LABEL org.opencontainers.image.description="DFIR-Toth - Blue Team Docker Distribution - DFIR Image"
-LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.version="${TOTH_VERSION}"
 LABEL org.opencontainers.image.authors="xLxxt"
 LABEL org.opencontainers.image.source="https://github.com/xLxxt/Toth-DFIR"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Build arguments
 ARG DEBIAN_FRONTEND=noninteractive
-ARG TOTH_VERSION="0.1.0"
 ARG TARGETARCH
 ARG CHAINSAW_VERSION="2.16.0"
 ARG HAYABUSA_VERSION="3.9.0"

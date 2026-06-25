@@ -101,7 +101,8 @@ Profiles: `base`, `dfir`, `malware`, `network`.
 See [docs/usage.md](docs/usage.md) for workspace layout, tool checks and
 practical DFIR, malware and network examples.
 
-Release readiness is tracked in [docs/release-checklist.md](docs/release-checklist.md)
+Release readiness is tracked in [docs/release-checklist.md](docs/release-checklist.md),
+GHCR publication in [docs/ghcr-publication.md](docs/ghcr-publication.md),
 and current project limits are documented in [docs/known-limitations.md](docs/known-limitations.md).
 
 ---
