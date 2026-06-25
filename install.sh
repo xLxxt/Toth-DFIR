@@ -93,5 +93,6 @@ echo "[+] Toth installed in $INSTALL_DIR"
 echo "[+] Workspace: $WORKSPACE"
 ensure_path
 echo "[+] Next steps:"
-echo "      toth update dfir     build the DFIR image"
-echo "      toth exec dfir       open a DFIR shell"
+echo "      toth update dfir          pull the DFIR image"
+echo "      toth update --build dfir  build the DFIR image locally"
+echo "      toth shell dfir           open a DFIR shell"

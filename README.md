@@ -82,7 +82,8 @@ make run
 ```bash
 toth list
 toth status
-toth update dfir
+toth update dfir          # pull from GHCR
+toth update --build dfir  # build locally for development
 toth start dfir
 toth shell dfir
 toth exec dfir vol3 -h

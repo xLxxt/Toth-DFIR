@@ -131,11 +131,17 @@ command -v toth
 toth --version
 ```
 
-Build a profile and open a shell:
+Install a profile image and open a shell:
 
 ```bash
 toth update dfir
-toth exec dfir
+toth shell dfir
+```
+
+If the public image has not been published yet, build it locally:
+
+```bash
+toth update --build dfir
 ```
 
 Inside the container, run the tool inventory check:

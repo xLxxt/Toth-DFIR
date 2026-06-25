@@ -8,8 +8,8 @@ that users and contributors should know before relying on it in a real case.
 - The project is currently built around the `dev` branch.
 - The wrapper CLI supports `list`, `status`, `start`, `shell`, `exec`, `stop`,
   and `update`.
-- Advanced wrapper features such as profile templates, pull/build selection, and
-  richer user configuration are planned for Phase 2.
+- Advanced wrapper features such as profile templates and richer user
+  configuration are planned for Phase 2.
 
 ## Installation
 
@@ -22,6 +22,8 @@ that users and contributors should know before relying on it in a real case.
 
 - Images are currently tagged `0.1.0`.
 - Profile images inherit from `toth-base:0.1.0`.
+- `toth update` pulls from GHCR by default; if public images are not available
+  yet, use `toth update --build <profile>`.
 - Rebuilding `base` can require rebuilding the specialized images.
 - The network profile uses Docker network capabilities for packet tooling.
 

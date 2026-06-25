@@ -35,4 +35,4 @@ The Python wrapper calls Docker Compose for common operations:
 - `shell`: open an interactive shell in a profile container
 - `exec`: run a command in a profile container
 - `stop`: stop a profile container
-- `update`: build images
+- `update`: pull images from GHCR or build them locally with `--build`

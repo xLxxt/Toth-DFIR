@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 
 VERSION = "0.2.0-dev"
-IMAGE_VERSION = "0.1.0"
+IMAGE_VERSION = os.environ.get("TOTH_IMAGE_VERSION", "0.1.0")
+REGISTRY = os.environ.get("TOTH_REGISTRY", "ghcr.io/xlxxt")
 ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE = os.environ.get("TOTH_WORKSPACE", os.path.expanduser("~/toth/workspace"))
 
@@ -24,6 +25,10 @@ def service(profile):
 
 def image(profile):
     return f"{service(profile)}:{IMAGE_VERSION}"
+
+
+def remote_image(profile):
+    return f"{REGISTRY}/{service(profile)}:{IMAGE_VERSION}"
 
 
 def profile_for_service(service_name):

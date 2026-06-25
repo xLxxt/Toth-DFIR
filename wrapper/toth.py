@@ -48,8 +48,9 @@ def build_parser():
     add_exec_arguments(p_shell)
     p_shell.set_defaults(func=shell_cmd.run)
 
-    p_update = sub.add_parser("update", help="build or rebuild images")
+    p_update = sub.add_parser("update", help="pull images or build them locally")
     p_update.add_argument("profile", nargs="?", default="all", choices=list(config.PROFILES) + ["all"])
+    p_update.add_argument("--build", action="store_true", help="build images locally instead of pulling from GHCR")
     p_update.set_defaults(func=update.run)
 
     return parser

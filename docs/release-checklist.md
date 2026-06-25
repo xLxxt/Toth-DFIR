@@ -77,7 +77,7 @@ bash tests/test_commands.sh
 Then verify one profile manually:
 
 ```bash
-toth update dfir
+toth update --build dfir
 toth exec dfir vol3 -h
 toth stop dfir
 ```

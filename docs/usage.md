@@ -32,9 +32,10 @@ Docker mounts it like this:
 Why: keeping evidence and output outside the container makes rebuilds safe. You
 can delete or rebuild images without losing cases.
 
-## Build images
+## Update images
 
-With the wrapper:
+By default, the wrapper pulls images from GHCR and tags them locally for Docker
+Compose:
 
 ```bash
 toth update base
@@ -43,13 +44,28 @@ toth update malware
 toth update network
 ```
 
-Build everything:
+Update every profile:
 
 ```bash
 toth update
 ```
 
-From a development clone, you can also use Make:
+For development, build images locally instead of pulling them:
+
+```bash
+toth update --build base
+toth update --build dfir
+toth update --build malware
+toth update --build network
+```
+
+Build every profile locally:
+
+```bash
+toth update --build
+```
+
+From a development clone, you can still use Make directly:
 
 ```bash
 make build-base

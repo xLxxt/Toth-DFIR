@@ -88,6 +88,21 @@ def status():
     return _compose(["ps"])
 
 
+def pull(profile):
+    ensure_docker()
+    ensure_workspace()
+    remote = config.remote_image(profile)
+    local = config.image(profile)
+    print(f"[+] Pulling {remote}")
+    code = _run(["pull", remote])
+    if code != 0:
+        print(f"[!] Failed to pull {remote}")
+        print(f"[!] If the image is not published yet, use: toth update --build {profile}")
+        return code
+    print(f"[+] Tagging {remote} as {local}")
+    return _run(["tag", remote, local])
+
+
 def build(profile):
     ensure_docker()
     ensure_workspace()
