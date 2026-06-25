@@ -23,6 +23,10 @@ The current public image tag is:
 The wrapper itself is currently `0.2.0-dev`, but image tags stay on `0.1.0`
 until the next image release is ready.
 
+The first GHCR publication targets `linux/amd64` only. `linux/arm64` is planned
+for a later hardening pass because some DFIR dependencies compile from source
+and are slow or fragile under QEMU emulation in GitHub Actions.
+
 ## Publish manually
 
 From GitHub:
@@ -65,7 +69,7 @@ This publishes image tag `0.1.0` and `latest`.
 
 ## Verify pulls
 
-After the workflow succeeds, verify direct Docker pulls:
+After the workflow succeeds, verify direct Docker pulls from an amd64 host:
 
 ```bash
 docker pull ghcr.io/xlxxt/toth-base:0.1.0

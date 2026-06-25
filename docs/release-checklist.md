@@ -137,6 +137,7 @@ The documentation should clearly state:
 - current private/public install behavior
 - known architecture limitations
 - GHCR image tag and visibility
+- GHCR platform scope, currently `linux/amd64`
 
 ## 8. GHCR publication
 
@@ -157,4 +158,6 @@ toth shell dfir
 ```
 
 GitHub Actions publishes images to GHCR on `v*` tags. If the package is private
-by default, make the GHCR package public from GitHub package settings.
+by default, make the GHCR package public from GitHub package settings. The first
+publication targets `linux/amd64`; add `linux/arm64` after the source-built DFIR
+dependencies are stable in CI.
