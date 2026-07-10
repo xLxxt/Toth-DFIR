@@ -110,6 +110,25 @@ The wrapper starts the selected Docker Compose service and opens a shell inside
 the container. `toth exec <profile>` still works as a backwards-compatible alias
 when no command is provided.
 
+## Manage containers
+
+Re-enter an existing container without recreating it:
+
+```bash
+toth enter dfir
+```
+
+Restart or remove a profile container:
+
+```bash
+toth restart dfir
+toth remove dfir
+```
+
+If Docker reports that a container name such as `toth-dfir` is already in use,
+use `toth enter dfir` to recover the shell or `toth remove dfir` to remove the
+stale container.
+
 ## Run one command
 
 ```bash

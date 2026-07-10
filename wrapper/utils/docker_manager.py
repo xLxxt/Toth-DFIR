@@ -70,10 +70,43 @@ def ensure_image(profile):
         )
 
 
+def _print_process_output(result):
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.stderr:
+        print(result.stderr, end="")
+
+
+def _container_exists(name):
+    result = _run(["container", "inspect", name], capture=True)
+    return result.returncode == 0
+
+
+def _ensure_container_exists(name, profile):
+    if not _container_exists(name):
+        raise DockerError(
+            f"Container {name} does not exist. Start it with: toth shell {profile}"
+        )
+
+
 def up(svc):
     profile = config.profile_for_service(svc)
     ensure_image(profile)
-    return _compose(["up", "-d", svc])
+    result = _compose(["up", "-d", svc], capture=True)
+    if result.returncode == 0:
+        _print_process_output(result)
+        return 0
+
+    output = f"{result.stdout}\n{result.stderr}"
+    if "already in use" in output and svc in output:
+        raise DockerError(
+            f"Container name {svc} is already in use. "
+            f"Re-enter it with: toth enter {profile}. "
+            f"Remove it with: toth remove {profile}."
+        )
+
+    _print_process_output(result)
+    return result.returncode
 
 
 def stop(svc):
@@ -82,6 +115,28 @@ def stop(svc):
 
 def shell(svc, command):
     return _compose(["exec", svc] + command)
+
+
+def enter(svc, command):
+    profile = config.profile_for_service(svc)
+    _ensure_container_exists(svc, profile)
+    start_result = _run(["start", svc], capture=True)
+    if start_result.returncode != 0:
+        _print_process_output(start_result)
+        return start_result.returncode
+    return _run(["exec", "-it", svc] + command)
+
+
+def restart(svc):
+    profile = config.profile_for_service(svc)
+    _ensure_container_exists(svc, profile)
+    return _run(["restart", svc])
+
+
+def remove(svc):
+    profile = config.profile_for_service(svc)
+    _ensure_container_exists(svc, profile)
+    return _run(["rm", "-f", svc])
 
 
 def _is_toth_container(name, image):

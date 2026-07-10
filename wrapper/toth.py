@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from commands import list as list_cmd
 from commands import shell as shell_cmd
-from commands import start, status, stop, update
+from commands import enter, remove, restart, start, status, stop, update
 from commands import exec as exec_cmd
 from utils import config
 from utils.docker_manager import DockerError
@@ -36,9 +36,21 @@ def build_parser():
     add_profile_argument(p_start)
     p_start.set_defaults(func=start.run)
 
+    p_enter = sub.add_parser("enter", help="enter an existing container")
+    add_exec_arguments(p_enter)
+    p_enter.set_defaults(func=enter.run)
+
+    p_restart = sub.add_parser("restart", help="restart an existing container")
+    add_profile_argument(p_restart)
+    p_restart.set_defaults(func=restart.run)
+
     p_stop = sub.add_parser("stop", help="stop a container")
     add_profile_argument(p_stop)
     p_stop.set_defaults(func=stop.run)
+
+    p_remove = sub.add_parser("remove", aliases=["rm"], help="remove an existing container")
+    add_profile_argument(p_remove)
+    p_remove.set_defaults(func=remove.run)
 
     p_exec = sub.add_parser("exec", help="open a shell or run a command")
     add_exec_arguments(p_exec)

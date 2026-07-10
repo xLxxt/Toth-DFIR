@@ -30,9 +30,12 @@ access.
 The Python wrapper calls Docker Compose for common operations:
 
 - `list`: list available profiles and image tags
-- `status`: show Docker Compose container status
+- `status`: show Toth container status
 - `start`: start a profile container
+- `enter`: enter an existing profile container
+- `restart`: restart an existing profile container
 - `shell`: open an interactive shell in a profile container
 - `exec`: run a command in a profile container
 - `stop`: stop a profile container
+- `remove`: remove an existing profile container
 - `update`: pull images from GHCR or build them locally with `--build`
