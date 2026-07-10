@@ -9,10 +9,11 @@ user account, not under `root`. Do not run it with `sudo`.
 ## Requirements
 
 - Git
-- Docker Engine
-- Docker Compose plugin
 - Python 3
 - Bash or Zsh
+
+Docker Engine and the Docker Compose plugin are required to run containers, but
+the installer itself only requires Git and Python 3.
 
 ## Docker sanity check
 
@@ -60,8 +61,9 @@ curl -sSL https://raw.githubusercontent.com/xLxxt/Toth-DFIR/dev/install.sh | bas
 ```
 
 This clones Toth into `~/.toth`, creates a workspace under
-`~/toth/workspace`, builds the base image, and installs a `toth` launcher in
-`~/.local/bin`.
+`~/toth/workspace`, and installs a `toth` launcher in `~/.local/bin`.
+It does not build Docker images during installation; images are pulled later
+with `toth update`.
 
 Restart your shell after installation, or source your shell profile:
 
@@ -161,7 +163,7 @@ over HTTPS. Use SSH:
 TOTH_REPO_URL=git@github.com:xLxxt/Toth-DFIR.git ./install.sh
 ```
 
-### The installer says Docker is not running
+### `toth update` says Docker is not running
 
 Start Docker and retry:
 

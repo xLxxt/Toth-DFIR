@@ -17,9 +17,22 @@ if [ "${EUID:-$(id -u)}" -eq 0 ]; then
     exit 1
 fi
 
-for cmd in git docker python3; do
+for cmd in git python3; do
     command -v "$cmd" >/dev/null 2>&1 || { echo "[!] $cmd is required"; exit 1; }
 done
+
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "[!] Docker is not installed or not available in PATH."
+        echo "[!] Toth is installed, but install Docker before running containers."
+        return 0
+    fi
+
+    if ! docker info >/dev/null 2>&1; then
+        echo "[!] Docker is installed but the daemon is not reachable."
+        echo "[!] Start Docker before running: toth update <profile>"
+    fi
+}
 
 ensure_path() {
     case ":$PATH:" in
@@ -58,8 +71,6 @@ ensure_path() {
     fi
 }
 
-docker info >/dev/null 2>&1 || { echo "[!] docker daemon is not running"; exit 1; }
-
 if [ -d "$INSTALL_DIR/.git" ]; then
     echo "[+] Updating existing install in $INSTALL_DIR"
     git -C "$INSTALL_DIR" pull --ff-only
@@ -85,13 +96,11 @@ printf 'TOTH_WORKSPACE=%s\n' "$WORKSPACE" > "$INSTALL_DIR/.env"
 printf '#!/bin/bash\nexec python3 "%s/wrapper/toth.py" "$@"\n' "$INSTALL_DIR" > "$BIN_DIR/toth"
 chmod +x "$BIN_DIR/toth"
 
-echo "[+] Building base image (this takes a few minutes)"
-bash "$INSTALL_DIR/images/base/build.sh"
-
 echo ""
 echo "[+] Toth installed in $INSTALL_DIR"
 echo "[+] Workspace: $WORKSPACE"
 ensure_path
+check_docker
 echo "[+] Next steps:"
 echo "      toth update dfir          pull the DFIR image"
 echo "      toth update --build dfir  build the DFIR image locally"

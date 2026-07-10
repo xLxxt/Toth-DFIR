@@ -52,10 +52,11 @@ One line install (Linux and macOS):
 curl -sSL https://raw.githubusercontent.com/xLxxt/Toth-DFIR/dev/install.sh | bash
 ```
 
-It installs Toth in `~/.toth`, creates the workspace, builds the base image
-and adds the `toth` command to `~/.local/bin`.
+It installs Toth in `~/.toth`, creates the workspace and adds the `toth`
+command to `~/.local/bin`. Images are pulled later with `toth update`.
 
-Requirements: `git`, `docker`, `python3`.
+Installer requirements: `git`, `python3`. Runtime requirements: Docker Engine
+and the Docker Compose plugin.
 
 Detailed install instructions, Fedora notes, private repository setup and
 troubleshooting are available in [docs/installation.md](docs/installation.md).
