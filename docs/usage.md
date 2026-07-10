@@ -83,7 +83,8 @@ List available profiles and their local image tags:
 toth list
 ```
 
-Show Docker Compose container status:
+Show Toth containers, including containers started by the wrapper and Toth images
+started manually with `docker run`:
 
 ```bash
 toth status

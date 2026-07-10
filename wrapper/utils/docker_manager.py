@@ -84,8 +84,46 @@ def shell(svc, command):
     return _compose(["exec", svc] + command)
 
 
+def _is_toth_container(name, image):
+    services = set(config.PROFILES.values())
+    remote_repos = {
+        config.remote_image(profile).rsplit(":", 1)[0] for profile in config.PROFILES
+    }
+    image_repo = image.split("@", 1)[0].rsplit(":", 1)[0]
+    return (
+        name in services
+        or name.startswith("toth-")
+        or image_repo in services
+        or image_repo in remote_repos
+    )
+
+
 def status():
-    return _compose(["ps"])
+    result = _run(
+        ["ps", "-a", "--format", "{{.Names}}\t{{.Image}}\t{{.Status}}"],
+        capture=True,
+    )
+    if result.returncode != 0:
+        return result.returncode
+
+    rows = []
+    for line in result.stdout.splitlines():
+        parts = line.split("\t", 2)
+        if len(parts) != 3:
+            continue
+        name, image, status_text = parts
+        if _is_toth_container(name, image):
+            rows.append((name, image, status_text))
+
+    if not rows:
+        print("No Toth containers found.")
+        print("Start one with: toth shell dfir")
+        return 0
+
+    print(f"{'NAME':<18} {'IMAGE':<38} STATUS")
+    for name, image, status_text in rows:
+        print(f"{name:<18} {image:<38} {status_text}")
+    return 0
 
 
 def pull(profile):
