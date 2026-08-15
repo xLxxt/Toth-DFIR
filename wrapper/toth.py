@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from commands import case as case_cmd
 from commands import list as list_cmd
 from commands import shell as shell_cmd
 from commands import enter, remove, restart, start, status, stop, update
@@ -64,6 +65,23 @@ def build_parser():
     p_update.add_argument("profile", nargs="?", default="all", choices=list(config.PROFILES) + ["all"])
     p_update.add_argument("--build", action="store_true", help="build images locally instead of pulling from GHCR")
     p_update.set_defaults(func=update.run)
+
+    p_case = sub.add_parser("case", help="manage cases (evidence/output scoping)")
+    case_sub = p_case.add_subparsers(dest="case_command", required=True)
+
+    p_case_new = case_sub.add_parser("new", help="create and activate a new case")
+    p_case_new.add_argument("name")
+    p_case_new.set_defaults(func=case_cmd.new)
+
+    p_case_list = case_sub.add_parser("list", help="list existing cases")
+    p_case_list.set_defaults(func=case_cmd.list_cmd)
+
+    p_case_use = case_sub.add_parser("use", help="switch the active case")
+    p_case_use.add_argument("name")
+    p_case_use.set_defaults(func=case_cmd.use)
+
+    p_case_current = case_sub.add_parser("current", help="show the active case")
+    p_case_current.set_defaults(func=case_cmd.current)
 
     return parser
 

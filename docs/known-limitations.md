@@ -6,10 +6,13 @@ that users and contributors should know before relying on it in a real case.
 ## Project maturity
 
 - The project is currently built around the `dev` branch.
-- The wrapper CLI supports `list`, `status`, `start`, `shell`, `exec`, `stop`,
-  and `update`.
-- Advanced wrapper features such as profile templates and richer user
-  configuration are planned for Phase 2.
+- The wrapper CLI supports `list`, `status`, `start`, `enter`, `restart`,
+  `shell`, `exec`, `stop`, `remove`, `update`, and `case`.
+- There is a single global active case (not per-profile); switching cases
+  while a container is running requires a restart to pick up the new
+  mounts (`toth case use` / `toth case new` warn about this).
+- Advanced wrapper features such as profile templates are planned for
+  Phase 2.
 
 ## Installation
 

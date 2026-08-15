@@ -32,6 +32,10 @@ Docker mounts it like this:
 Why: keeping evidence and output outside the container makes rebuilds safe. You
 can delete or rebuild images without losing cases.
 
+This is the default, flat layout used when no case is active (see
+[Manage cases](#manage-cases) below). It's what you get out of the box, and
+it keeps working exactly like this if you never touch the `case` command.
+
 ## Update images
 
 By default, the wrapper pulls images from GHCR and tags them locally for Docker
@@ -128,6 +132,57 @@ toth remove dfir
 If Docker reports that a container name such as `toth-dfir` is already in use,
 use `toth enter dfir` to recover the shell or `toth remove dfir` to remove the
 stale container.
+
+## Manage cases
+
+Toth can scope evidence (`/cases`) and generated output (`/opt/toth/output`)
+to a single active case, so different engagements don't mix their files.
+There is one active case globally, shared by every profile.
+
+Create a case and make it active:
+
+```bash
+toth case new acme-intrusion-2026
+```
+
+This creates `~/toth/workspace/cases/acme-intrusion-2026/` and
+`~/toth/workspace/output/acme-intrusion-2026/`, and records the active case
+in `~/toth/workspace/.active-case`.
+
+List known cases (the active one is marked with `*`):
+
+```bash
+toth case list
+```
+
+Switch to a different, already-existing case:
+
+```bash
+toth case use other-case
+```
+
+If a Toth container is currently running, `toth case new`/`toth case use`
+print a warning: the running container still has the previous case's
+directories mounted. `toth restart` only restarts the process and does
+*not* pick up the new mounts -- recreate the container instead:
+
+```bash
+toth start dfir
+```
+
+(`toth enter dfir` and `toth exec dfir ...` also recreate it if needed,
+since they call the same `docker compose up -d` path under the hood.)
+
+Show the active case (or a message that none is set):
+
+```bash
+toth case current
+```
+
+With no active case, `/cases` and `/opt/toth/output` mount the flat
+`cases/` and `output/` directories described above -- this is the default
+and requires no setup. Once a case is active, every profile mounts that
+case's own `cases/<name>/` and `output/<name>/` subdirectories instead.
 
 ## Run one command
 
