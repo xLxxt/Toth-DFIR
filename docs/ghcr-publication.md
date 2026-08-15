@@ -27,6 +27,31 @@ The first GHCR publication targets `linux/amd64` only. `linux/arm64` is planned
 for a later hardening pass because some DFIR dependencies compile from source
 and are slow or fragile under QEMU emulation in GitHub Actions.
 
+### arm64 experiment (not part of the release process)
+
+`.github/workflows/arm64-experiment.yml` is a separate, `workflow_dispatch`-only
+workflow that measures how slow the arm64 concern above actually is, instead of
+leaving it as an assumption. It never runs automatically and does not modify
+`publish-image.yml` or `build-image.yml`. To trigger it: open `Actions`, select
+`arm64-experiment`, click `Run workflow`. It runs two independent jobs and does
+not push any images:
+
+- `qemu-cross-build`: builds the base and DFIR images for `linux/arm64` under
+  QEMU emulation on a normal `ubuntu-latest` runner (the same approach
+  `publish-image.yml` would use if `linux/arm64` were added to `PLATFORMS`) and
+  reports wall-clock timing for each stage, including the three from-source
+  builds (`bulk_extractor`, `libbfio`, `libpff`) that are the actual risk.
+- `native-arm64-runner`: attempts the same builds on GitHub's hosted
+  `ubuntu-24.04-arm` runner, with no QEMU involved, as a native-arm64 timing
+  baseline. If that runner type isn't available for this repository/plan, the
+  job simply fails to schedule -- which answers the "is a native arm64 runner
+  usable here" question on its own.
+
+Trigger it manually, review the timing in the job summaries (and whether
+`native-arm64-runner` scheduled at all), and use those real numbers -- not this
+paragraph -- to decide whether/how to add `linux/arm64` to the actual publish
+path in `publish-image.yml`.
+
 ## Publish manually
 
 From GitHub:

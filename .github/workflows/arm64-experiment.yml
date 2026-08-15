@@ -1,0 +1,165 @@
+name: arm64-experiment
+
+# Experimental, manual-only workflow. It does NOT publish anything and is not
+# part of the release process. Its sole purpose is to gather real timing
+# numbers to inform a future arm64 GHCR publish decision (see
+# docs/ghcr-publication.md and docs/known-limitations.md).
+#
+# It never runs on push/PR and must not be wired into publish-image.yml or
+# build-image.yml.
+#
+# Note: images/dfir/Dockerfile's BASE_IMAGE build-arg must resolve to a real
+# local image (it defaults to the unqualified tag "toth-base:0.1.0"), so each
+# job below builds the base image for the target platform first (--load) and
+# then builds the DFIR image on top of it, mirroring the base-then-dfir
+# ordering already used in publish-image.yml. Neither build is pushed
+# anywhere; results are discarded once timing is captured.
+on:
+  workflow_dispatch:
+
+jobs:
+  # Job 1: cross-build the DFIR image for linux/arm64 under QEMU emulation on
+  # a normal (amd64) hosted runner. This is the expensive path publish-image.yml
+  # would take today if arm64 were added to PLATFORMS. The three from-source
+  # autotools/C builds in images/dfir/Dockerfile (bulk_extractor, libbfio,
+  # libpff) are the suspected slow/fragile part; this job's wall-clock time is
+  # the real number needed to evaluate that suspicion.
+  qemu-cross-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Start base image timer
+        run: echo "BASE_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Build base image for linux/arm64 under QEMU (load only, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/base/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: toth-base:0.1.0-arm64-experiment
+          build-args: TOTH_VERSION=0.1.0-arm64-experiment
+
+      - name: Report base image timing
+        if: always()
+        run: |
+          base_end=$(date +%s)
+          base_seconds=$((base_end - BASE_START))
+          echo "BASE_SECONDS=$base_seconds" >> "$GITHUB_ENV"
+          echo "DFIR_START=$(date +%s)" >> "$GITHUB_ENV"
+          {
+            echo "## arm64 QEMU cross-build timing"
+            echo ""
+            echo "| Stage | Wall-clock seconds |"
+            echo "|---|---|"
+            echo "| base image (linux/arm64, QEMU) | ${base_seconds}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build DFIR image for linux/arm64 under QEMU (timed, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/dfir/Dockerfile
+          platforms: linux/arm64
+          push: false
+          # Not loaded: a foreign-arch image can't run on this amd64 runner
+          # anyway, and only timing of the source builds (bulk_extractor,
+          # libbfio, libpff) matters here.
+          build-args: |
+            BASE_IMAGE=toth-base:0.1.0-arm64-experiment
+            TOTH_VERSION=0.1.0-arm64-experiment
+
+      - name: Report DFIR image timing
+        if: always()
+        run: |
+          dfir_end=$(date +%s)
+          dfir_seconds=$((dfir_end - DFIR_START))
+          total_seconds=$((BASE_SECONDS + dfir_seconds))
+          {
+            echo "| dfir image (linux/arm64, QEMU, includes bulk_extractor/libbfio/libpff from source) | ${dfir_seconds}s |"
+            echo "| **total** | **${total_seconds}s** |"
+            echo ""
+            echo "Compare against the \`native-arm64-runner\` job in this same workflow run, if it was scheduled."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Job 2: attempt the same two builds natively on GitHub's hosted arm64
+  # runner (ubuntu-24.04-arm), with no QEMU involved. This job exists purely
+  # as a comparison point against qemu-cross-build above: if this runner
+  # label is available for this repo/plan, the job schedules and its
+  # wall-clock time is the native-arm64 baseline. If the runner type is not
+  # available for this repo/plan, GitHub will simply fail to schedule the
+  # job (or it will queue indefinitely) -- that failure-to-schedule is
+  # itself the answer to "is a native arm64 runner usable here", no further
+  # investigation needed.
+  native-arm64-runner:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm native arm64 and show environment
+        run: |
+          uname -m
+          uname -a
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Start base image timer
+        run: echo "BASE_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Build base image for linux/arm64 natively (load only, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/base/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: toth-base:0.1.0-arm64-experiment
+          build-args: TOTH_VERSION=0.1.0-arm64-experiment
+
+      - name: Report base image timing
+        if: always()
+        run: |
+          base_end=$(date +%s)
+          base_seconds=$((base_end - BASE_START))
+          echo "BASE_SECONDS=$base_seconds" >> "$GITHUB_ENV"
+          echo "DFIR_START=$(date +%s)" >> "$GITHUB_ENV"
+          {
+            echo "## arm64 native runner build timing"
+            echo ""
+            echo "| Stage | Wall-clock seconds |"
+            echo "|---|---|"
+            echo "| base image (linux/arm64, native) | ${base_seconds}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build DFIR image natively on arm64 (timed, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/dfir/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          build-args: |
+            BASE_IMAGE=toth-base:0.1.0-arm64-experiment
+            TOTH_VERSION=0.1.0-arm64-experiment
+
+      - name: Report DFIR image timing
+        if: always()
+        run: |
+          dfir_end=$(date +%s)
+          dfir_seconds=$((dfir_end - DFIR_START))
+          total_seconds=$((BASE_SECONDS + dfir_seconds))
+          {
+            echo "| dfir image (linux/arm64, native, includes bulk_extractor/libbfio/libpff from source) | ${dfir_seconds}s |"
+            echo "| **total** | **${total_seconds}s** |"
+            echo ""
+            echo "Compare against the \`qemu-cross-build\` job in this same workflow run."
+          } >> "$GITHUB_STEP_SUMMARY"
