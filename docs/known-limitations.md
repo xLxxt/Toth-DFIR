@@ -37,6 +37,15 @@ that users and contributors should know before relying on it in a real case.
   `config/vim/vim.rc` are empty placeholders and are not copied into any image
   today. Only `config/shell/aliases.sh` is currently wired into the `base`
   image. Shipping custom shell/tmux/vim defaults is planned but not started.
+- `lynis`, `chkrootkit`, and `rkhunter` in the `dfir` image audit the live
+  host/filesystem they run on (or a chroot'd copy of a suspect filesystem),
+  not arbitrary evidence files dropped in `/cases`. Run standalone inside a
+  fresh `toth-dfir` container, they audit the container itself, which is not
+  a typical DFIR workflow for these tools. They are included for
+  live-response and chroot-based Linux host triage, not for direct
+  evidence-file scanning like the rest of the `dfir` tool set. `rkhunter`'s
+  file-properties database (`--propupd`) is baked in at build time because
+  `dfir` runs with `network_mode: none` and cannot fetch it at runtime.
 
 ## Architecture support
 

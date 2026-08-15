@@ -98,7 +98,8 @@ RUN pip3 install --upgrade pip setuptools wheel \
         python-evtx \
         sigma-cli \
         timesketch-api-client \
-        plaso
+        plaso \
+        ioc-finder
 
 RUN git clone https://github.com/volatilityfoundation/volatility3.git \
         /opt/toth/tools/volatility3 \
@@ -137,6 +138,21 @@ RUN case "${TARGETARCH}" in \
 RUN git clone --depth 1 https://github.com/SigmaHQ/sigma.git \
         /opt/toth/rules/sigma
 
+# Threat intel and Linux host forensics packages (lynis/chkrootkit/rkhunter
+# audit the host they run on; see docs/known-limitations.md)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        lynis \
+        chkrootkit \
+        rkhunter \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bake the rkhunter file-properties database in at build time, while network
+# access is available, so it never has to reach out at container runtime
+# (dfir runs with network_mode: none).
+RUN rkhunter --propupd
+
 # Install smoke checks
 RUN command -v bulk_extractor \
     && command -v pffexport \
@@ -144,6 +160,10 @@ RUN command -v bulk_extractor \
     && command -v vol3 \
     && command -v chainsaw \
     && command -v hayabusa \
+    && command -v ioc-finder \
+    && command -v lynis \
+    && command -v chkrootkit \
+    && command -v rkhunter \
     && test -d /opt/toth/rules/sigma
 
 # Workspace and permissions

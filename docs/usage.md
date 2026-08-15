@@ -188,6 +188,18 @@ toth exec dfir hayabusa csv-timeline \
   --output /opt/toth/output/hayabusa-timeline.csv
 ```
 
+Extract IOCs (IPs, domains, hashes, ...) from a text report. `ioc-finder`
+parses its `TEXT` argument or stdin directly — it does not read a file path
+argument as a file — so redirect from the file inside the container:
+
+```bash
+toth exec dfir bash -c 'ioc-finder < /cases/report.txt'
+```
+
+`lynis`, `chkrootkit`, and `rkhunter` are also available in `dfir`, but they
+audit the host/filesystem they run on rather than scanning arbitrary evidence
+files — see `docs/known-limitations.md` before relying on them for a case.
+
 ## Malware examples
 
 Inspect a suspicious binary with capa:

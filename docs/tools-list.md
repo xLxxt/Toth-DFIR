@@ -66,6 +66,10 @@ The DFIR image inherits all base tools and adds:
 - Chainsaw
 - Hayabusa
 - Sigma rules
+- ioc-finder (threat intel: regex-based IOC extraction)
+- Lynis (Linux host audit; see `docs/known-limitations.md`)
+- chkrootkit (Linux rootkit check; see `docs/known-limitations.md`)
+- rkhunter (Linux rootkit hunter; see `docs/known-limitations.md`)
 
 ## Malware
 
@@ -110,7 +114,7 @@ These candidates are tracked for later lots:
 - Base/log analysis: zq / zed
 - Malware: strace, ltrace, fakenet-ng, inetsim, Ghidra
 - Network: RITA
-- Threat intel: ioc-finder, unfurl, vt-cli, abuse-cli, CyberChef CLI, PyMISP
+- Threat intel: unfurl, vt-cli, abuse-cli, CyberChef CLI, PyMISP
 - DFIR/Windows: impacket, Volatility 2, Autopsy, Zimmerman tools
 - Cloud: aws-cli, azure-cli, pwsh, trailscraper, stormspotter, o365-investigator
 

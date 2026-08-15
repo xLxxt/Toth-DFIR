@@ -92,6 +92,10 @@ if [ -d "/opt/toth/tools/volatility3" ]; then
     check_path "Sigma rules" "/opt/toth/rules/sigma"
     python3 -c "import Evtx" &>/dev/null && ok "python-evtx" || fail "python-evtx"
     python3 -c "import plaso" &>/dev/null && ok "Plaso" || fail "Plaso"
+    check_cmd "ioc-finder"
+    check_cmd "lynis"
+    check_cmd "chkrootkit"
+    check_cmd "rkhunter"
 fi
 
 # =============================================================================
