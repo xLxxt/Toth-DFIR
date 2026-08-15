@@ -4,23 +4,70 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import config
+from utils import case, config
 
 
 class DockerError(RuntimeError):
     pass
 
 
+def _ensure_case_mount_link(link_path, target_dir):
+    target_dir.mkdir(parents=True, exist_ok=True)
+    if link_path.is_symlink():
+        try:
+            if link_path.resolve() == target_dir.resolve():
+                return
+        except OSError:
+            pass
+        link_path.unlink()
+    elif link_path.exists():
+        # Unexpected non-symlink entry at this path; leave it alone rather
+        # than risk deleting something unrelated.
+        return
+    link_path.symlink_to(target_dir, target_is_directory=True)
+
+
+def _resolve_workspace():
+    """Resolve the TOTH_WORKSPACE value handed to docker/compose.
+
+    docker-compose.yml unconditionally mounts ${TOTH_WORKSPACE}/cases and
+    ${TOTH_WORKSPACE}/output. With no active case, TOTH_WORKSPACE is the
+    workspace root, so those mounts resolve to the legacy flat directories
+    (unchanged behavior). With an active case, the real per-case
+    directories live at <workspace>/cases/<name> and
+    <workspace>/output/<name> (see utils.case) -- two independent trees
+    that a single "root + fixed suffix" pattern can't reach directly. To
+    keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a small
+    per-case shim directory containing "cases" and "output" symlinks into
+    those real directories.
+    """
+    workspace = Path(config.WORKSPACE).expanduser()
+    active = case.active_case()
+    if active is None:
+        return str(workspace)
+
+    cases_dir, output_dir = case.case_paths(active)
+    mount_root = workspace / ".case-mounts" / active
+    mount_root.mkdir(parents=True, exist_ok=True)
+    _ensure_case_mount_link(mount_root / "cases", cases_dir)
+    _ensure_case_mount_link(mount_root / "output", output_dir)
+    return str(mount_root)
+
+
 def _env():
     env = os.environ.copy()
-    env.setdefault("TOTH_WORKSPACE", config.WORKSPACE)
+    # Always resolve, even if TOTH_WORKSPACE is already set in the parent
+    # environment: config.WORKSPACE itself already accounts for that value
+    # (see utils.config), and case-scoped resolution must take priority so
+    # docker/compose consistently mount the *active case's* directories.
+    env["TOTH_WORKSPACE"] = _resolve_workspace()
     return env
 
 
 def ensure_workspace():
-    workspace = Path(config.WORKSPACE).expanduser()
-    (workspace / "cases").mkdir(parents=True, exist_ok=True)
-    (workspace / "output").mkdir(parents=True, exist_ok=True)
+    cases_dir, output_dir = case.case_paths(case.active_case())
+    cases_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def ensure_docker():
@@ -144,6 +191,25 @@ def remove(svc):
 
 
 TOTH_LABEL = "org.opencontainers.image.source=https://github.com/xLxxt/Toth-DFIR"
+
+
+def running_names():
+    """Return the names of currently running Toth containers."""
+    result = _run(
+        [
+            "ps",
+            "--filter",
+            f"label={TOTH_LABEL}",
+            "--filter",
+            "status=running",
+            "--format",
+            "{{.Names}}",
+        ],
+        capture=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
 def status():

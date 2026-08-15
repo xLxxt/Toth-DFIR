@@ -25,6 +25,29 @@ Most profiles use restricted networking. The network profile uses additional
 network capabilities because tools such as `tcpdump` and Suricata need packet
 access.
 
+### Case-scoped mounts
+
+`docker-compose.yml` always mounts `${TOTH_WORKSPACE}/cases:/cases` and
+`${TOTH_WORKSPACE}/output:/opt/toth/output` -- that file never changes based
+on case state. What changes is what the wrapper resolves `TOTH_WORKSPACE` to
+before invoking `docker compose`:
+
+- No active case: `TOTH_WORKSPACE` is the workspace root, so the mounts
+  resolve to the flat `cases/` and `output/` directories (legacy behavior,
+  unchanged).
+- An active case: the real per-case directories live at
+  `<workspace>/cases/<name>/` and `<workspace>/output/<name>/`
+  (`wrapper/utils/case.py`). Since those are two independent trees that a
+  single "root + fixed suffix" pattern can't address directly, the wrapper
+  points `TOTH_WORKSPACE` at a small per-case shim directory
+  (`<workspace>/.case-mounts/<name>/`) holding `cases` and `output`
+  symlinks into the real directories. `docker-compose.yml` stays untouched
+  and `docker compose` is still used, not raw `docker run`.
+
+Case state itself (`$TOTH_WORKSPACE/.active-case`) is separate from the
+repo's `.env`: `.env` holds static per-profile configuration, while the
+active case is mutable runtime state scoped to the workspace.
+
 ## Wrapper model
 
 The Python wrapper calls Docker Compose for common operations:
@@ -40,3 +63,5 @@ The Python wrapper calls Docker Compose for common operations:
 - `stop`: stop a profile container
 - `remove`: remove an existing profile container
 - `update`: pull images from GHCR or build them locally with `--build`
+- `case`: manage the active case (`new`, `list`, `use`, `current`), which
+  scopes `/cases` and `/opt/toth/output` per engagement

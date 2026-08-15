@@ -6,13 +6,16 @@ that users and contributors should know before relying on it in a real case.
 ## Project maturity
 
 - The project is currently built around the `dev` branch.
-- The wrapper CLI supports `list`, `status`, `start`, `shell`, `exec`, `stop`,
-  and `update`.
+- The wrapper CLI supports `list`, `status`, `start`, `enter`, `restart`,
+  `shell`, `exec`, `stop`, `remove`, `update`, and `case`.
 - Per-profile image/tag overrides for the four built-in profiles are
   supported via `.env` (`TOTH_PROFILE_<NAME>_IMAGE` /
   `TOTH_PROFILE_<NAME>_TAG`, see `docs/usage.md`). Defining entirely new,
   user-named profiles beyond `base`, `dfir`, `malware`, and `network` is
   still not supported; that is deferred, larger-scope work.
+- There is a single global active case (not per-profile); switching cases
+  while a container is running requires a restart to pick up the new
+  mounts (`toth case use` / `toth case new` warn about this).
 
 ## Installation
 
