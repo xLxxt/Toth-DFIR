@@ -21,11 +21,20 @@ out as a single cross-cutting decision below rather than three separate ones.
 
 ## 1. Browser-accessible GUI via noVNC
 
+> **Amendment (2026-08-16):** the maintainer has clarified that GUI support
+> (this noVNC work, and the X11-forwarding work in
+> `docs/roadmap-x11-forwarding.md`) should be available across **all**
+> profiles as a cross-cutting capability, not split into a dedicated `gui`
+> profile as recommended below. Re-scope the profile/layering approach
+> accordingly before implementing; the rest of this section's technical
+> content (Xvfb/noVNC stack, auth, risk notes) still applies.
+
 **Problem.** Toth is CLI-first by design, but GUI-only tools (Autopsy,
 Wireshark's GUI) have no place to run. `docs/known-limitations.md` already
 commits to noVNC support in Phase 3.
 
-**Recommended approach.** A new `images/gui/` profile, not a flag on existing
+**Recommended approach (superseded on profile scoping, see amendment above).**
+A new `images/gui/` profile, not a flag on existing
 profiles. GUI tooling (Xvfb, a lightweight window manager such as openbox,
 x11vnc or TigerVNC, noVNC + websockify) is a distinct, heavy layer that
 doesn't belong baked into `dfir`/`malware`/`network` for analysts who never

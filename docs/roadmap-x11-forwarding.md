@@ -14,6 +14,17 @@ Wireshark GUI are not the current runtime focus, even when supporting
 packages are present" — `wireshark-common` is already installed in
 `images/network/Dockerfile`, but not the GUI package.
 
+> **Amendment (2026-08-16):** this document's "Which profile(s)" section
+> scopes X11 forwarding as an opt-in flag on the `network` profile only. The
+> maintainer has since clarified that GUI support (both this X11-forwarding
+> approach and the noVNC work in `docs/roadmap-phase3.md`) should be
+> available across **all** profiles as a cross-cutting capability, not
+> confined to one profile or split into a dedicated `gui` profile. The
+> mechanics below (mount + env forwarding, `.Xauthority` auth, package
+> additions) still apply; re-scope the "which profile(s)" question and the
+> corresponding `docker-compose.yml`/Dockerfile changes accordingly before
+> implementing.
+
 ## Why X11 forwarding, and why not noVNC
 
 `docs/roadmap-phase3.md` (branch `phase3-scoping`, not merged) already scopes
