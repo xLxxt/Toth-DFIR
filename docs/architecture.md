@@ -33,7 +33,10 @@ The Python wrapper calls Docker Compose for common operations:
 - `status`: show all Toth containers (wrapper-started or launched manually with
   `docker run`), matched by the Toth OCI image label
 - `start`: start a profile container
+- `enter`: enter an existing profile container
+- `restart`: restart an existing profile container
 - `shell`: open an interactive shell in a profile container
 - `exec`: run a command in a profile container
 - `stop`: stop a profile container
+- `remove`: remove an existing profile container
 - `update`: pull images from GHCR or build them locally with `--build`

@@ -87,8 +87,11 @@ toth update dfir          # pull from GHCR
 toth update --build dfir  # build locally for development
 toth start dfir
 toth shell dfir
+toth enter dfir
 toth exec dfir vol3 -h
+toth restart dfir
 toth stop dfir
+toth remove dfir
 toth update
 ```
 

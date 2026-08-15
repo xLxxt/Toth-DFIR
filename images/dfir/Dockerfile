@@ -120,14 +120,17 @@ RUN case "${TARGETARCH}" in arm64) CS_ARCH=aarch64 ;; *) CS_ARCH=x86_64 ;; esac 
     && ln -s /opt/toth/tools/chainsaw-rules/mappings /opt/toth/tools/chainsaw/mappings \
     && ln -s /opt/toth/tools/chainsaw/chainsaw/chainsaw /usr/local/bin/chainsaw
 
-RUN case "${TARGETARCH}" in arm64) HAYA_ARCH=aarch64 ;; *) HAYA_ARCH=x64 ;; esac \
+RUN case "${TARGETARCH}" in \
+        arm64) HAYA_ARCH=aarch64; HAYA_LIBC=gnu ;; \
+        *) HAYA_ARCH=x64; HAYA_LIBC=musl ;; \
+    esac \
     && mkdir -p /opt/toth/tools/hayabusa \
     && curl -fsSL \
-        "https://github.com/Yamato-Security/hayabusa/releases/download/v${HAYABUSA_VERSION}/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu.zip" \
+        "https://github.com/Yamato-Security/hayabusa/releases/download/v${HAYABUSA_VERSION}/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-${HAYA_LIBC}.zip" \
         -o /tmp/hayabusa.zip \
     && unzip -q /tmp/hayabusa.zip -d /opt/toth/tools/hayabusa \
-    && chmod +x "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu" \
-    && ln -s "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-gnu" /opt/toth/tools/hayabusa/hayabusa \
+    && chmod +x "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-${HAYA_LIBC}" \
+    && ln -s "/opt/toth/tools/hayabusa/hayabusa-${HAYABUSA_VERSION}-lin-${HAYA_ARCH}-${HAYA_LIBC}" /opt/toth/tools/hayabusa/hayabusa \
     && ln -s /opt/toth/tools/hayabusa/hayabusa /usr/local/bin/hayabusa \
     && rm -f /tmp/hayabusa.zip
 
