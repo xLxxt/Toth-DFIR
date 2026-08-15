@@ -84,26 +84,24 @@ def shell(svc, command):
     return _compose(["exec", svc] + command)
 
 
-def _is_toth_container(name, image):
-    services = set(config.PROFILES.values())
-    remote_repos = {
-        config.remote_image(profile).rsplit(":", 1)[0] for profile in config.PROFILES
-    }
-    image_repo = image.split("@", 1)[0].rsplit(":", 1)[0]
-    return (
-        name in services
-        or name.startswith("toth-")
-        or image_repo in services
-        or image_repo in remote_repos
-    )
+TOTH_LABEL = "org.opencontainers.image.source=https://github.com/xLxxt/Toth-DFIR"
 
 
 def status():
     result = _run(
-        ["ps", "-a", "--format", "{{.Names}}\t{{.Image}}\t{{.Status}}"],
+        [
+            "ps",
+            "-a",
+            "--filter",
+            f"label={TOTH_LABEL}",
+            "--format",
+            "{{.Names}}\t{{.Image}}\t{{.Status}}",
+        ],
         capture=True,
     )
     if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr.strip())
         return result.returncode
 
     rows = []
@@ -111,9 +109,7 @@ def status():
         parts = line.split("\t", 2)
         if len(parts) != 3:
             continue
-        name, image, status_text = parts
-        if _is_toth_container(name, image):
-            rows.append((name, image, status_text))
+        rows.append(tuple(parts))
 
     if not rows:
         print("No Toth containers found.")

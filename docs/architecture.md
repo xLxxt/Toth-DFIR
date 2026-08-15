@@ -30,7 +30,8 @@ access.
 The Python wrapper calls Docker Compose for common operations:
 
 - `list`: list available profiles and image tags
-- `status`: show Docker Compose container status
+- `status`: show all Toth containers (wrapper-started or launched manually with
+  `docker run`), matched by the Toth OCI image label
 - `start`: start a profile container
 - `shell`: open an interactive shell in a profile container
 - `exec`: run a command in a profile container

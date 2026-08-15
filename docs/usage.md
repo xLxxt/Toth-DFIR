@@ -157,7 +157,7 @@ Run Chainsaw on Windows EVTX logs:
 ```bash
 toth exec dfir chainsaw hunt /cases/evtx \
   --sigma /opt/toth/rules/sigma \
-  --mapping /opt/toth/rules/sigma/tools/sigma/mappings/sigma-event-logs-all.yml \
+  --mapping /opt/toth/tools/chainsaw/mappings/sigma-event-logs-all.yml \
   --output /opt/toth/output/chainsaw-results
 ```
 

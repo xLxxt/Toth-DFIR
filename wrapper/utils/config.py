@@ -1,11 +1,33 @@
 import os
 from pathlib import Path
 
-VERSION = "0.2.0-dev"
-IMAGE_VERSION = os.environ.get("TOTH_IMAGE_VERSION", "0.1.0")
-REGISTRY = os.environ.get("TOTH_REGISTRY", "ghcr.io/xlxxt")
 ROOT = Path(__file__).resolve().parents[2]
-WORKSPACE = os.environ.get("TOTH_WORKSPACE", os.path.expanduser("~/toth/workspace"))
+
+
+def _load_dotenv(path):
+    values = {}
+    if not path.is_file():
+        return values
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        values[key.strip()] = value.strip()
+    return values
+
+
+_DOTENV = _load_dotenv(ROOT / ".env")
+
+
+def _setting(key, default):
+    return os.environ.get(key, _DOTENV.get(key, default))
+
+
+VERSION = "0.2.0-dev"
+IMAGE_VERSION = _setting("TOTH_IMAGE_VERSION", "0.1.0")
+REGISTRY = _setting("TOTH_REGISTRY", "ghcr.io/xlxxt")
+WORKSPACE = os.path.expanduser(_setting("TOTH_WORKSPACE", "~/toth/workspace"))
 
 PROFILES = {
     "base": "toth-base",

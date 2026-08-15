@@ -26,6 +26,17 @@ that users and contributors should know before relying on it in a real case.
   yet, use `toth update --build <profile>`.
 - Rebuilding `base` can require rebuilding the specialized images.
 - The network profile uses Docker network capabilities for packet tooling.
+- A `full` profile combining every tool set is planned but not implemented yet:
+  `images/full/` is an empty placeholder, not wired into the wrapper, the
+  `Makefile`, or CI.
+- `tools/install/**` (per-tool install scripts, one per forensic/malware/network
+  tool) is an empty scaffold from an earlier design. Tool installation currently
+  lives entirely in each profile's `Dockerfile` as inline `RUN` steps; moving it
+  to these standalone scripts is a possible future refactor, not done yet.
+- `config/shell/.bashrc`, `config/shell/.zshrc`, `config/tmux/tmux.conf`, and
+  `config/vim/vim.rc` are empty placeholders and are not copied into any image
+  today. Only `config/shell/aliases.sh` is currently wired into the `base`
+  image. Shipping custom shell/tmux/vim defaults is planned but not started.
 
 ## Architecture support
 
