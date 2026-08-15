@@ -41,6 +41,16 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# dnstwist: try apt (Ubuntu universe) first, fall back to pip
+RUN apt-get update \
+    && if apt-get install -y --no-install-recommends dnstwist; then \
+        true; \
+    else \
+        pip3 install --no-cache-dir dnstwist; \
+    fi \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Tool installation
 RUN echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_22.04/ /' \
         > /etc/apt/sources.list.d/zeek.list \
@@ -73,6 +83,7 @@ RUN command -v tshark \
     && command -v whois \
     && command -v ngrep \
     && command -v tcpflow \
+    && command -v dnstwist \
     && command -v zeek \
     && command -v zeekctl \
     && command -v suricata

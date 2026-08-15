@@ -109,6 +109,7 @@ if [ -d "/opt/toth/tools/capa" ]; then
     fi
     check_cmd "UPX" "upx"
     check_cmd "FLOSS" "floss"
+    check_cmd "radare2" "r2"
     check_py  "pefile" "pefile"
     check_py  "pyelftools" "elftools"
     check_py  "capstone" "capstone"
@@ -130,6 +131,7 @@ if command -v tshark &>/dev/null || command -v zeek &>/dev/null; then
     check_cmd "whois"
     check_cmd "ngrep"
     check_cmd "tcpflow"
+    check_cmd "dnstwist"
     check_cmd "Zeek" "zeek"
     check_cmd "Zeekctl" "zeekctl"
     check_cmd "Suricata" "suricata"
