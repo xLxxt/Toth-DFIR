@@ -90,6 +90,35 @@ started manually with `docker run`:
 toth status
 ```
 
+## Per-profile image overrides
+
+For any of the four built-in profiles (`base`, `dfir`, `malware`, `network`),
+you can override which local image the wrapper uses by setting one of these
+in `.env` (see `.env.example`):
+
+```bash
+# Full override: use a custom image name and tag for this profile.
+TOTH_PROFILE_DFIR_IMAGE=my-custom-dfir:latest
+
+# Tag-only override: keep the default image name, swap the tag.
+TOTH_PROFILE_DFIR_TAG=0.2.0-rc1
+```
+
+`<NAME>` is the uppercased profile key (`BASE`, `DFIR`, `MALWARE`,
+`NETWORK`). If both keys are set for the same profile, `TOTH_PROFILE_<NAME>_IMAGE`
+wins. `toth list` marks any profile with an active override as
+`(overridden)`.
+
+This only changes which local image `toth start`/`shell`/`exec`/etc. run --
+it does not affect where `toth update <profile>` pulls from; that always
+follows `TOTH_REGISTRY` and `TOTH_IMAGE_VERSION`. Use overrides to point the
+wrapper at an image you already built or pulled under a different name, for
+example while testing a release candidate tag locally.
+
+This is Tier 1 configuration: it only overrides the four built-in profiles'
+image reference. Defining entirely new, user-named profiles is not
+supported yet.
+
 ## Open a shell
 
 Installed command:

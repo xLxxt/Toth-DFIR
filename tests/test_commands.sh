@@ -22,4 +22,11 @@ TOTH=(python3 "$ROOT/wrapper/toth.py")
 "${TOTH[@]}" update --help | grep -q "base,dfir,malware,network,all"
 "${TOTH[@]}" update --help | grep -q -- "--build"
 
+# Per-profile config overrides (Phase 2, Tier 1): a TOTH_PROFILE_<NAME>_TAG
+# env var should surface in `toth list` output for that profile only, and
+# remote_image() (GHCR pull target) must stay unaffected.
+TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "toth-base:override-test"
+TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "toth-base.*(overridden)"
+TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-base:0.1.0"
+
 echo "[+] Wrapper command smoke tests passed"

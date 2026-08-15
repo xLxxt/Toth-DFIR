@@ -45,7 +45,42 @@ def service(profile):
     return PROFILES[profile]
 
 
+def _profile_override(profile):
+    """Look up a per-profile local image override, if any.
+
+    Two `.env`-style keys are recognized per profile, named after the
+    uppercased profile key:
+
+    - `TOTH_PROFILE_<NAME>_IMAGE`: full image reference override (e.g.
+      `TOTH_PROFILE_DFIR_IMAGE=my-custom-dfir:latest`). Bypasses the normal
+      `service(profile):IMAGE_VERSION` construction entirely.
+    - `TOTH_PROFILE_<NAME>_TAG`: tag-only override (e.g.
+      `TOTH_PROFILE_DFIR_TAG=0.2.0-rc1`). Keeps the normal image name but
+      swaps the tag.
+
+    If both are set for the same profile, `_IMAGE` wins since it is the more
+    specific override. Returns None when no override is configured.
+
+    This only affects `image()` (the local image reference used to run
+    containers). `remote_image()` is intentionally left untouched: it feeds
+    `toth update <profile>`, which pulls from GHCR, and overrides here are
+    for pointing the wrapper at an already-built/pulled local image, not for
+    changing where GHCR pulls come from.
+    """
+    name = profile.upper()
+    full_override = _setting(f"TOTH_PROFILE_{name}_IMAGE", None)
+    if full_override:
+        return full_override
+    tag_override = _setting(f"TOTH_PROFILE_{name}_TAG", None)
+    if tag_override:
+        return f"{service(profile)}:{tag_override}"
+    return None
+
+
 def image(profile):
+    override = _profile_override(profile)
+    if override:
+        return override
     return f"{service(profile)}:{IMAGE_VERSION}"
 
 
