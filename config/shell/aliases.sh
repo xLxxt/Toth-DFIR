@@ -12,6 +12,11 @@ alias ...='cd ../..'
 # TOTH
 # =============================================================================
 alias toth-check='bash /opt/toth/scripts/check_tools.sh'
+# /cases and /opt/toth/output are mounted by docker-compose.yml. If an
+# active case is set on the host (`toth case use`/`toth case new`), the
+# wrapper resolves those mounts to that case's own subdirectories before
+# starting the container, so these aliases always land in the right place
+# without any change here.
 alias cases='cd /cases'
 alias output='cd /opt/toth/output'
 alias toth-home='cd /opt/toth'
@@ -157,14 +162,9 @@ ioc-file() { cat "$1" | ioc-extract; }
 # =============================================================================
 # HELPERS DFIR
 # =============================================================================
-setcase() {
-    export CASE="$1"
-    echo "[+] Case set to: $CASE"
-}
-
-newcase() {
-    local name="${1:-case_$(date +%Y%m%d)}"
-    mkdir -p /cases/$name/{evidence,output/{volatility,chainsaw,hayabusa,plaso,regripper},notes}
-    export CASE_DIR="/cases/$name"
-    echo "[+] Case created: /cases/$name"
-}
+# Case management now lives on the host: use `toth case new`/`toth case
+# use`/`toth case list`/`toth case current` before starting a container.
+# The old in-container setcase()/newcase() helpers (and the $CASE/$CASE_DIR
+# env vars they set) are retired -- they predated and duplicated that
+# feature, and a process inside a container can't drive the host-side
+# `toth case` command itself.
