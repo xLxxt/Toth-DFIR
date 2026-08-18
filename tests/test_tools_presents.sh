@@ -2,10 +2,10 @@
 set -euo pipefail
 
 IMAGES=(
-  "toth-base:0.1.0"
-  "toth-dfir:0.1.0"
-  "toth-malware:0.1.0"
-  "toth-network:0.1.0"
+  "toth-base:0.2.0"
+  "toth-dfir:0.2.0"
+  "toth-malware:0.2.0"
+  "toth-network:0.2.0"
 )
 
 missing=0

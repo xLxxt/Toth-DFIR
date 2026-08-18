@@ -1,6 +1,6 @@
 services:
   toth-base:
-    image: toth-base:0.1.0
+    image: toth-base:0.2.0
     container_name: toth-base
     network_mode: none
     stdin_open: true
@@ -10,7 +10,7 @@ services:
       - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-dfir:
-    image: toth-dfir:0.1.0
+    image: toth-dfir:0.2.0
     container_name: toth-dfir
     network_mode: none
     stdin_open: true
@@ -20,7 +20,7 @@ services:
       - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-malware:
-    image: toth-malware:0.1.0
+    image: toth-malware:0.2.0
     container_name: toth-malware
     network_mode: none
     stdin_open: true
@@ -30,7 +30,7 @@ services:
       - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-network:
-    image: toth-network:0.1.0
+    image: toth-network:0.2.0
     container_name: toth-network
     network_mode: bridge
     stdin_open: true

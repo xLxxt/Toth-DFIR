@@ -26,8 +26,8 @@ that users and contributors should know before relying on it in a real case.
 
 ## Docker images
 
-- Images are currently tagged `0.1.0`.
-- Profile images inherit from `toth-base:0.1.0`.
+- Images are currently tagged `0.2.0`.
+- Profile images inherit from `toth-base:0.2.0`.
 - `toth update` pulls from GHCR by default; if public images are not available
   yet, use `toth update --build <profile>`.
 - Rebuilding `base` can require rebuilding the specialized images.

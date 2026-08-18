@@ -7,10 +7,10 @@ Docker image with a focused toolset.
 
 | Profile | Image | Use case |
 |---------|-------|----------|
-| `base` | `toth-base:0.1.0` | Shared shell, utilities, archives, text processing |
-| `dfir` | `toth-dfir:0.1.0` | Memory, event logs, timelines, forensic triage |
-| `malware` | `toth-malware:0.1.0` | Static malware analysis, YARA, capa, FLOSS, DIE |
-| `network` | `toth-network:0.1.0` | PCAP triage, Zeek, Suricata, tshark, tcpdump |
+| `base` | `toth-base:0.2.0` | Shared shell, utilities, archives, text processing |
+| `dfir` | `toth-dfir:0.2.0` | Memory, event logs, timelines, forensic triage |
+| `malware` | `toth-malware:0.2.0` | Static malware analysis, YARA, capa, FLOSS, DIE |
+| `network` | `toth-network:0.2.0` | PCAP triage, Zeek, Suricata, tshark, tcpdump |
 
 ## Workspace layout
 
@@ -326,9 +326,9 @@ toth exec network toth-check
 For direct Docker checks:
 
 ```bash
-docker run --rm toth-dfir:0.1.0 toth-check
-docker run --rm toth-malware:0.1.0 toth-check
-docker run --rm toth-network:0.1.0 toth-check
+docker run --rm toth-dfir:0.2.0 toth-check
+docker run --rm toth-malware:0.2.0 toth-check
+docker run --rm toth-network:0.2.0 toth-check
 ```
 
 ## DFIR examples
@@ -424,7 +424,7 @@ operations. Direct Docker is still useful for debugging:
 docker run --rm -it \
   -v "$HOME/toth/workspace/cases:/cases" \
   -v "$HOME/toth/workspace/output:/opt/toth/output" \
-  toth-dfir:0.1.0 /bin/bash
+  toth-dfir:0.2.0 /bin/bash
 ```
 
 For the network image, Docker Compose is preferred because the service declares

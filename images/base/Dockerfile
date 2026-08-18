@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 # Build arguments
-ARG TOTH_VERSION="0.1.0"
+ARG TOTH_VERSION="0.2.0"
 
 # Metadata
 LABEL org.opencontainers.image.title="DFIR-Toth Base"
