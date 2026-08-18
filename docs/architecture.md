@@ -25,6 +25,42 @@ Most profiles use restricted networking. The network profile uses additional
 network capabilities because tools such as `tcpdump` and Suricata need packet
 access.
 
+### Network policy
+
+`network_mode: none` is the default-deny posture for every profile except
+`network`. This is a deliberate security property, not an oversight, and the
+following rules govern when and how it may be relaxed:
+
+- **`malware` never gets network access, full stop.** Malware analysis
+  containers run potentially hostile samples; no opt-in, override, or future
+  feature is allowed to weaken this. This is a hard exception, not a default
+  that features can request their way around.
+- **`base` and `dfir` stay `network_mode: none` by default.** Network access
+  for these profiles (VPN into an engagement box, threat-intel API calls) is
+  opt-in per case, not a blanket property of the profile — a container
+  shouldn't gain network reach just because *some* analyst, on some other
+  case, needed it. `dfir` is `config.DEFAULT_PROFILE`, so a blanket change
+  here would silently affect every analyst's default container; opt-in per
+  case avoids that.
+- **`network` stays `bridge` with `NET_ADMIN`/`NET_RAW`**, unchanged — this
+  predates the policy above and remains scoped to its original purpose
+  (packet capture).
+- **Capability tier matters, not just "network or not."** Plain outbound
+  HTTPS/websocket access (threat-intel API calls, a future noVNC browser
+  bridge, cloud-provider API calls) is one tier. `NET_ADMIN` plus raw
+  `/dev/net/tun` access (VPN tunnels) is a categorically larger grant — it
+  allows interface creation and routing-table manipulation, not just
+  outbound calls — and requires its own explicit sign-off before shipping,
+  not a rubber-stamp alongside lower-tier features. See
+  `docs/roadmap-vpn.md` section 6 for the full reasoning.
+- **GUI support (X11 forwarding, and later noVNC) is a separate case
+  entirely** and does not weaken this policy: it's a host socket/display
+  bind-mount, not network access, and is being built as a cross-cutting
+  capability available to any profile rather than gated by this policy.
+
+See `docs/roadmap-phase3.md` (cross-cutting section) and `docs/roadmap-vpn.md`
+for the fuller design discussion this policy was distilled from.
+
 ### Case-scoped mounts
 
 `docker-compose.yml` always mounts `${TOTH_WORKSPACE}/cases:/cases` and
