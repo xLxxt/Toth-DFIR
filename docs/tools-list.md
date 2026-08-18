@@ -103,7 +103,8 @@ The network image inherits all base tools and adds:
 - ngrep
 - tcpflow
 - dnstwist
-- Wireshark common files
+- Wireshark (CLI + GUI, `wireshark`/`tshark`/`dumpcap`; launch the GUI with
+  `toth exec --gui network wireshark`, see `docs/usage.md`)
 - Zeek and zeekctl
 - Suricata
 

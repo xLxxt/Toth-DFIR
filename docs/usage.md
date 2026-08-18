@@ -162,6 +162,90 @@ If Docker reports that a container name such as `toth-dfir` is already in use,
 use `toth enter dfir` to recover the shell or `toth remove dfir` to remove the
 stale container.
 
+## Run GUI apps (X11 forwarding)
+
+`start`, `shell`, and `exec` accept `--gui`. It shares your host's X11
+session with the container -- the same mechanism `ssh -X` uses -- so a GUI
+app launched inside the container displays a real window on your desktop,
+with no VNC and no browser tab involved:
+
+```bash
+toth exec --gui network wireshark
+toth shell --gui network
+```
+
+`--gui` works the same way for any of the four profiles (`base`, `dfir`,
+`malware`, `network`) -- the mechanism itself has nothing profile-specific
+about it, even though Wireshark (`network`) is the first tool that ships
+with a GUI package installed.
+
+**This only works when you run `toth` on the same machine as the Docker
+host's own desktop session.** X11 forwarding here bind-mounts the host's
+`/tmp/.X11-unix` Unix socket into the container; it is not a network
+connection, so unlike a browser-based remote desktop it does **not** work
+over a plain SSH session to a remote/shared Docker host. If you're on a
+remote analysis box, `--gui` gives you nothing today; a browser-accessible
+remote desktop (noVNC) is planned for a later phase (see
+`docs/known-limitations.md`) and is the feature that will cover that case.
+
+How it works: `--gui` layers a second Compose file
+(`docker-compose.gui.yml`) on top of `docker-compose.yml`, adding an X11
+socket mount, a read-only `.Xauthority` mount, and `DISPLAY`/`XAUTHORITY`
+environment variables to the container. Containers started without `--gui`
+are completely unaffected -- no socket, no `.Xauthority` file, and no new
+environment variables are added.
+
+Requirements:
+
+- `DISPLAY` must be set in the shell you run `toth` from. A normal Linux
+  desktop session already sets this; a plain SSH session without `-X`/`-Y`
+  usually does not. `toth` fails fast with a clear error if `DISPLAY` is
+  unset or `/tmp/.X11-unix` doesn't exist, instead of letting the GUI app
+  fail deep inside the container with a confusing X11 connection error.
+- Toth mounts your host's `.Xauthority` (from `$XAUTHORITY`, falling back to
+  `~/.Xauthority`) into the container read-only and points `XAUTHORITY` at
+  it -- this is the automatic, default auth mechanism, and it works whether
+  or not the container's `analyst` user (uid 1000) matches your host uid,
+  because the X server checks the auth cookie in that file, not the
+  connecting uid. If your `.Xauthority` isn't populated the way most
+  desktop environments populate it (some minimal window managers don't) and
+  the GUI app fails to connect, the documented fallback is a manual,
+  one-time host-side command: `xhost +si:localuser:$(whoami)`. Avoid bare
+  `xhost +` (disables all X access control for every user) and
+  `xhost +local:` (grants every local user, not just you) -- prefer the
+  scoped `+si:localuser:` form.
+- `toth enter <profile>` re-enters an existing container without recreating
+  it, so it does not take a `--gui` flag: a container's mounts are fixed
+  when it's created, so start (or recreate) it with `shell --gui`/
+  `exec --gui`/`start --gui` first.
+
+**Security note.** Sharing the host's X11 socket is a real, standing
+trade-off, not a formality. X11 has essentially no per-client sandboxing:
+once a client authenticates to an X server it can, by protocol design, read
+keystrokes typed into *other* windows on the same session, screenshot the
+entire screen (not just its own window), and inject synthetic input -- this
+is the same reason `ssh -X` to an untrusted host is a known bad idea, and it
+is not specific to Docker or Toth. It is a filesystem-socket concern, not a
+network one: Toth's `network_mode: none`/`bridge` settings provide no
+mitigation here, and none of the profiles change their network isolation
+posture for this feature. Prefer `--gui` for tools you trust (Wireshark on
+already-captured or live-interface traffic, the concrete case this ships
+for). Think twice before combining `--gui` with anything that runs
+untrusted or attacker-supplied code -- e.g. samples in the `malware`
+profile -- since that pairing widens the trust boundary beyond Toth's usual
+"isolated, `network_mode: none` container" story for that workflow.
+
+### Wireshark example
+
+```bash
+toth exec --gui network wireshark
+```
+
+Opens a real Wireshark window on your desktop. Live capture on interfaces
+visible to the container works because `network` already has
+`NET_ADMIN`/`NET_RAW` via `cap_add`, and the image grants `dumpcap` the
+matching file capabilities so non-root capture works without extra setup.
+
 ## Manage cases
 
 Toth can scope evidence (`/cases`) and generated output (`/opt/toth/output`)

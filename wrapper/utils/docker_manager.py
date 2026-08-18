@@ -54,6 +54,22 @@ def _resolve_workspace():
     return str(mount_root)
 
 
+def _resolve_xauthority():
+    """Resolve the host's Xauthority path for --gui (X11 forwarding) mode.
+
+    Mirrors _resolve_workspace()'s pattern: compute a value from host state
+    once here and hand it to the compose subprocess as an env var that
+    docker-compose.gui.yml interpolates (${TOTH_XAUTHORITY}), rather than
+    leaning on Compose's own `${VAR:-default}` interpolation syntax.
+    Follows the same $XAUTHORITY-falling-back-to-~/.Xauthority convention
+    X11 client libraries themselves use.
+    """
+    xauthority = os.environ.get("XAUTHORITY")
+    if xauthority:
+        return xauthority
+    return str(Path.home() / ".Xauthority")
+
+
 def _env():
     env = os.environ.copy()
     # Always resolve, even if TOTH_WORKSPACE is already set in the parent
@@ -61,6 +77,12 @@ def _env():
     # (see utils.config), and case-scoped resolution must take priority so
     # docker/compose consistently mount the *active case's* directories.
     env["TOTH_WORKSPACE"] = _resolve_workspace()
+    # Always resolved too, even for non-GUI invocations: cheap, and it means
+    # docker-compose.gui.yml can interpolate ${TOTH_XAUTHORITY} unconditionally
+    # without a Compose-side "variable not set" warning on --gui. It is only
+    # ever referenced by docker-compose.gui.yml, which is only layered in on
+    # --gui invocations, so this has no effect on non-GUI containers.
+    env["TOTH_XAUTHORITY"] = _resolve_xauthority()
     return env
 
 
@@ -102,8 +124,46 @@ def _run(args, capture=False):
     return subprocess.call(command, cwd=str(config.ROOT), env=_env())
 
 
-def _compose(args, capture=False):
-    return _run(["compose"] + args, capture=capture)
+def _compose_args(args, gui=False):
+    """Build the `docker compose` argv, optionally layering in GUI mode.
+
+    Pure and side-effect-free on purpose (no subprocess, no filesystem) so
+    it can be exercised directly in tests without Docker or an X server.
+
+    Non-GUI path is untouched from before --gui existed: just
+    ["compose"] + args, relying on Compose's default docker-compose.yml
+    auto-discovery in cwd (config.ROOT). GUI mode has to name both files
+    explicitly with -f -- Compose stops auto-loading docker-compose.yml the
+    moment any -f is given, so the base file must be listed too.
+    """
+    if not gui:
+        return ["compose"] + args
+    return ["compose", "-f", "docker-compose.yml", "-f", "docker-compose.gui.yml"] + args
+
+
+def _ensure_gui_available():
+    """Fail fast, with a clear message, if --gui can't work on this host.
+
+    Better than letting `docker compose up` succeed and the GUI app fail
+    later inside the container with an opaque "cannot open display" error.
+    """
+    if not os.environ.get("DISPLAY"):
+        raise DockerError(
+            "--gui requires DISPLAY to be set. Run toth from a real desktop "
+            "session on the Docker host itself (a plain SSH session without "
+            "-X/-Y won't have a usable DISPLAY)."
+        )
+    if not Path("/tmp/.X11-unix").exists():
+        raise DockerError(
+            "--gui requires a running host X server, but /tmp/.X11-unix "
+            "was not found."
+        )
+
+
+def _compose(args, gui=False, capture=False):
+    if gui:
+        _ensure_gui_available()
+    return _run(_compose_args(args, gui=gui), capture=capture)
 
 
 def image_exists(profile):
@@ -137,10 +197,10 @@ def _ensure_container_exists(name, profile):
         )
 
 
-def up(svc):
+def up(svc, gui=False):
     profile = config.profile_for_service(svc)
     ensure_image(profile)
-    result = _compose(["up", "-d", svc], capture=True)
+    result = _compose(["up", "-d", svc], gui=gui, capture=True)
     if result.returncode == 0:
         _print_process_output(result)
         return 0
@@ -161,8 +221,8 @@ def stop(svc):
     return _compose(["stop", svc])
 
 
-def shell(svc, command):
-    return _compose(["exec", svc] + command)
+def shell(svc, command, gui=False):
+    return _compose(["exec", svc] + command, gui=gui)
 
 
 def enter(svc, command):

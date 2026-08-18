@@ -139,6 +139,8 @@ if command -v tshark &>/dev/null || command -v zeek &>/dev/null; then
     check_cmd "Zeek" "zeek"
     check_cmd "Zeekctl" "zeekctl"
     check_cmd "Suricata" "suricata"
+    check_cmd "Wireshark (GUI)" "wireshark"
+    check_cmd "dumpcap"
 fi
 
 # =============================================================================

@@ -17,8 +17,23 @@ def add_profile_argument(parser, default=config.DEFAULT_PROFILE):
     parser.add_argument("profile", nargs="?", default=default, choices=config.PROFILES)
 
 
-def add_exec_arguments(parser):
+def add_gui_argument(parser):
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help=(
+            "share the host's X11 session with the container (X11 socket + "
+            ".Xauthority passthrough) so GUI apps display on the host "
+            "desktop; requires DISPLAY and only works on the same machine "
+            "as the Docker host, see docs/usage.md"
+        ),
+    )
+
+
+def add_exec_arguments(parser, gui=False):
     add_profile_argument(parser)
+    if gui:
+        add_gui_argument(parser)
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
 
 
@@ -35,8 +50,14 @@ def build_parser():
 
     p_start = sub.add_parser("start", help="start a container")
     add_profile_argument(p_start)
+    add_gui_argument(p_start)
     p_start.set_defaults(func=start.run)
 
+    # No --gui here: enter re-attaches to an already-running/stopped
+    # container via `docker start`/`docker exec` directly, it never calls
+    # `docker compose up` and so never re-evaluates which compose files are
+    # layered in. A container's GUI mounts are fixed at creation time by
+    # `start`/`exec`/`shell --gui`; re-enter it with plain `toth enter`.
     p_enter = sub.add_parser("enter", help="enter an existing container")
     add_exec_arguments(p_enter)
     p_enter.set_defaults(func=enter.run)
@@ -54,11 +75,11 @@ def build_parser():
     p_remove.set_defaults(func=remove.run)
 
     p_exec = sub.add_parser("exec", help="open a shell or run a command")
-    add_exec_arguments(p_exec)
+    add_exec_arguments(p_exec, gui=True)
     p_exec.set_defaults(func=exec_cmd.run)
 
     p_shell = sub.add_parser("shell", help="open an interactive shell")
-    add_exec_arguments(p_shell)
+    add_exec_arguments(p_shell, gui=True)
     p_shell.set_defaults(func=shell_cmd.run)
 
     p_update = sub.add_parser("update", help="pull images or build them locally")
