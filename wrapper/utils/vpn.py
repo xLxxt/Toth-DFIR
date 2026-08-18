@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 
@@ -19,12 +20,21 @@ def _vpn_dir(case_name):
     return _workspace() / "vpn" / case_name
 
 
+def _copy_restricted(src, dst):
+    """Copy src to dst, created with 0600 from the start (no world/group-
+    readable window between the copy and a follow-up chmod)."""
+    fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as out, open(src, "rb") as src_f:
+        shutil.copyfileobj(src_f, out)
+
+
 def vpn_paths(case_name):
     """Inspect <workspace>/vpn/<case_name>/ and report what's there.
 
     Returns (config_path_or_none, creds_path_or_none, kind), where kind is
     "openvpn", "wireguard", or None if no config is present.
     """
+    _require_case(case_name)
     vpn_dir = _vpn_dir(case_name)
     ovpn_path = vpn_dir / CONFIG_FILENAMES["openvpn"]
     wg_path = vpn_dir / CONFIG_FILENAMES["wireguard"]
@@ -98,12 +108,14 @@ def add_vpn_config(case_name, source_file, creds_file=None, force=False):
         if other_kind != kind:
             (vpn_dir / filename).unlink(missing_ok=True)
 
-    shutil.copyfile(source_path, dest_config)
+    # Config files can embed private keys/certificates (common OpenVPN
+    # practice), so lock them down the same way creds.txt already is,
+    # rather than leaving them at the process's default umask.
+    _copy_restricted(source_path, dest_config)
 
     dest_creds = vpn_dir / CREDS_FILENAME
     if creds_path is not None:
-        shutil.copyfile(creds_path, dest_creds)
-        dest_creds.chmod(0o600)
+        _copy_restricted(creds_path, dest_creds)
     else:
         dest_creds.unlink(missing_ok=True)
 
@@ -111,11 +123,14 @@ def add_vpn_config(case_name, source_file, creds_file=None, force=False):
 
 
 def remove_vpn_config(case_name):
-    """Delete a case's vpn dir contents, if any."""
+    """Delete a case's vpn dir contents, if any. Returns True if something
+    was actually removed, False if there was nothing to remove."""
     _require_case(case_name)
     vpn_dir = _vpn_dir(case_name)
     if vpn_dir.is_dir():
         shutil.rmtree(vpn_dir)
+        return True
+    return False
 
 
 def active_vpn(case_name_or_none):

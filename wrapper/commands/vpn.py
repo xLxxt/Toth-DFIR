@@ -14,8 +14,11 @@ def add(args):
 
 
 def remove(args):
-    vpn_utils.remove_vpn_config(args.case)
-    print(f"[+] VPN config removed from case '{args.case}'")
+    removed = vpn_utils.remove_vpn_config(args.case)
+    if removed:
+        print(f"[+] VPN config removed from case '{args.case}'")
+    else:
+        print(f"[+] case '{args.case}' had no VPN config set, nothing to remove")
     return 0
 
 
