@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 IMAGE_NAME="toth-dfir"
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 log_info()  { echo -e "\e[32m[INFO]\e[0m  $1"; }
 log_warn()  { echo -e "\e[33m[WARN]\e[0m  $1"; }

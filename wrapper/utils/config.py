@@ -24,8 +24,8 @@ def _setting(key, default):
     return os.environ.get(key, _DOTENV.get(key, default))
 
 
-VERSION = "0.2.0-dev"
-IMAGE_VERSION = _setting("TOTH_IMAGE_VERSION", "0.1.0")
+VERSION = "0.2.0"
+IMAGE_VERSION = _setting("TOTH_IMAGE_VERSION", "0.2.0")
 REGISTRY = _setting("TOTH_REGISTRY", "ghcr.io/xlxxt")
 WORKSPACE = os.path.expanduser(_setting("TOTH_WORKSPACE", "~/toth/workspace"))
 

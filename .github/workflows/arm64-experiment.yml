@@ -9,7 +9,7 @@ name: arm64-experiment
 # build-image.yml.
 #
 # Note: images/dfir/Dockerfile's BASE_IMAGE build-arg must resolve to a real
-# local image (it defaults to the unqualified tag "toth-base:0.1.0"), so each
+# local image (it defaults to the unqualified tag "toth-base:0.2.0"), so each
 # job below builds the base image for the target platform first (--load) and
 # then builds the DFIR image on top of it, mirroring the base-then-dfir
 # ordering already used in publish-image.yml. Neither build is pushed

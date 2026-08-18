@@ -18,7 +18,7 @@ Paste the commands you ran and the relevant result.
 # Example
 docker compose config
 make build-base
-docker run --rm toth-base:0.1.0 bash /opt/toth/scripts/check_tools.sh
+docker run --rm toth-base:0.2.0 bash /opt/toth/scripts/check_tools.sh
 ```
 
 ## Notes

@@ -4,12 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOTH=(python3 "$ROOT/wrapper/toth.py")
 
-"${TOTH[@]}" --version | grep -q "toth 0.2.0-dev"
+"${TOTH[@]}" --version | grep -q "toth 0.2.0"
 "${TOTH[@]}" --help | grep -q "Blue Team Docker distribution"
 "${TOTH[@]}" --help | grep -q "list,status,start,enter,restart,stop,remove,rm,exec,shell,update,case"
 "${TOTH[@]}" --help | grep -q "pull images or build them locally"
-"${TOTH[@]}" list | grep -q "toth-dfir:0.1.0"
-"${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-dfir:0.1.0"
+"${TOTH[@]}" list | grep -q "toth-dfir:0.2.0"
+"${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-dfir:0.2.0"
 "${TOTH[@]}" list | grep -q "dfir.*default"
 "${TOTH[@]}" start --help | grep -q "base,dfir,malware,network"
 "${TOTH[@]}" enter --help | grep -q "cmd"
@@ -70,7 +70,7 @@ PY
 # remote_image() (GHCR pull target) must stay unaffected.
 TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "toth-base:override-test"
 TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "toth-base.*(overridden)"
-TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-base:0.1.0"
+TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-base:0.2.0"
 
 "${TOTH[@]}" case --help | grep -q "new,list,use,current"
 "${TOTH[@]}" case new --help | grep -q "name"

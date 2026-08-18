@@ -16,7 +16,7 @@ git pull --ff-only
 Verify the user-facing version references are coherent:
 
 ```bash
-grep -R "0.1.0" README.md docs wrapper images .github/workflows
+grep -R "0.2.0" README.md docs wrapper images .github/workflows
 ```
 
 If the release changes the version, update these areas together:
@@ -51,10 +51,10 @@ base dependencies before they affect DFIR, malware, or network workflows.
 Run the embedded tool checks for every built image:
 
 ```bash
-docker run --rm toth-base:0.1.0 toth-check
-docker run --rm toth-dfir:0.1.0 toth-check
-docker run --rm toth-malware:0.1.0 toth-check
-docker run --rm toth-network:0.1.0 toth-check
+docker run --rm toth-base:0.2.0 toth-check
+docker run --rm toth-dfir:0.2.0 toth-check
+docker run --rm toth-malware:0.2.0 toth-check
+docker run --rm toth-network:0.2.0 toth-check
 ```
 
 Alternatively, from an installed Toth wrapper:
@@ -145,14 +145,14 @@ Publish the image set manually from the `publish-image` workflow or with a
 release tag:
 
 ```bash
-git tag -a v0.1.0 -m "Toth images v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "Toth images v0.2.0"
+git push origin v0.2.0
 ```
 
 After publication, verify:
 
 ```bash
-docker pull ghcr.io/xlxxt/toth-dfir:0.1.0
+docker pull ghcr.io/xlxxt/toth-dfir:0.2.0
 toth update dfir
 toth shell dfir
 ```
