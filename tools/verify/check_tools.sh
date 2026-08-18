@@ -96,6 +96,17 @@ if [ -d "/opt/toth/tools/volatility3" ]; then
     check_cmd "lynis"
     check_cmd "chkrootkit"
     check_cmd "rkhunter"
+    check_cmd "Sleuth Kit" "fls"
+    check_cmd "Sleuth Kit" "icat"
+    check_cmd "Sleuth Kit" "mmls"
+    check_cmd ".NET runtime" "dotnet"
+    check_cmd "MFTECmd" "mftecmd"
+    check_cmd "PECmd" "pecmd"
+    check_cmd "LECmd" "lecmd"
+    check_cmd "JLECmd" "jlecmd"
+    check_cmd "SBECmd" "sbecmd"
+    check_cmd "AmcacheParser" "amcacheparser"
+    check_cmd "RECmd" "recmd"
 fi
 
 # =============================================================================
