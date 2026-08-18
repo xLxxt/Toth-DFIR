@@ -70,6 +70,12 @@ The DFIR image inherits all base tools and adds:
 - Lynis (Linux host audit; see `docs/known-limitations.md`)
 - chkrootkit (Linux rootkit check; see `docs/known-limitations.md`)
 - rkhunter (Linux rootkit hunter; see `docs/known-limitations.md`)
+- Sleuth Kit (`fls`, `icat`, `mmls`, and the rest of the `tsk` CLI suite)
+- Eric Zimmerman's tools (selective subset, MIT-licensed, run on the bundled
+  .NET runtime): `MFTECmd` (`$MFT`), `PECmd` (Prefetch), `LECmd` (LNK files),
+  `JLECmd` (jumplists), `SBECmd` (shellbags), `AmcacheParser`, `RECmd`
+  (registry; complements RegRipper with transaction-log replay, deleted-key
+  recovery, and Volume Shadow Copy support -- see `docs/roadmap-phase3.md`)
 
 ## Malware
 
@@ -116,7 +122,9 @@ These candidates are tracked for later lots:
 - Malware: strace, ltrace, fakenet-ng, inetsim, Ghidra
 - Network: RITA
 - Threat intel: unfurl, vt-cli, abuse-cli, CyberChef CLI, PyMISP
-- DFIR/Windows: impacket, Volatility 2, Autopsy, Zimmerman tools
+- DFIR/Windows: impacket, Volatility 2, Autopsy
+- Zimmerman tools not installed: `EvtxECmd` (redundant with Chainsaw/
+  Hayabusa's EVTX-hunting coverage)
 - Cloud: aws-cli, azure-cli, pwsh, trailscraper, stormspotter, o365-investigator
 
 Architecture notes and exact versions live in the Dockerfiles.

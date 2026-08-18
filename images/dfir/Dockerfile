@@ -17,6 +17,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 ARG CHAINSAW_VERSION="2.16.0"
 ARG HAYABUSA_VERSION="3.9.0"
+ARG DOTNET_RUNTIME_VERSION="9.0.19"
+ARG EZTOOLS_BASE_URL="https://download.ericzimmermanstools.com/net9"
 
 # Runtime environment
 ENV TOTH_VERSION=${TOTH_VERSION}
@@ -41,6 +43,7 @@ RUN apt-get update \
         libtool \
         gettext \
         libesedb-utils \
+        sleuthkit \
         perl \
         libparse-win32registry-perl \
         libssl-dev \
@@ -138,6 +141,102 @@ RUN case "${TARGETARCH}" in \
 RUN git clone --depth 1 https://github.com/SigmaHQ/sigma.git \
         /opt/toth/rules/sigma
 
+# Eric Zimmerman's tools (selective subset, per docs/roadmap-phase3.md
+# section 4): MFTECmd ($MFT), PECmd (Prefetch), LECmd/JLECmd (LNK files and
+# jumplists), SBECmd (shellbags), AmcacheParser, and RECmd (registry) parse
+# artifacts nothing else in this image touches. EvtxECmd is intentionally
+# skipped -- it overlaps with Chainsaw/Hayabusa's EVTX-hunting coverage.
+# RECmd is included alongside RegRipper (not instead of it): RECmd's own
+# archive bundles ~90 actively-maintained plugins plus community batch rule
+# files (DFIRBatch.reb) and adds transaction-log (.LOG/.LOG1/.LOG2) replay,
+# deleted-key recovery, and Volume Shadow Copy enumeration -- none of which
+# RegRipper's plugin set does -- so the two are complementary, not redundant.
+#
+# All tools/repos above are MIT-licensed (confirmed on GitHub); the compiled
+# archives are fetched from Eric Zimmerman's own official download endpoint,
+# the same one his official Get-ZimmermanTools script uses.
+#
+# Unlike Chainsaw/Hayabusa, this endpoint has no versioned URL -- it always
+# serves the current build (verified here as version 2026.5.0) -- so there
+# is no per-tool version ARG to pin.
+#
+# These ship as .NET 9 framework-dependent builds (a DLL, not a
+# self-contained native binary), so a .NET runtime is required to run them.
+# Eric Zimmerman does not publish self-contained linux-x64/arm64 builds for
+# this tool set. The official runtime IS available for both amd64 and
+# arm64, but only as a direct tarball -- packages.microsoft.com's Ubuntu
+# 22.04 apt feed carries dotnet-runtime-9.0 for amd64 only, not arm64 -- so
+# install from the tarball (TARGETARCH-branched, same as Chainsaw/Hayabusa)
+# rather than via apt.
+RUN case "${TARGETARCH}" in arm64) DOTNET_ARCH=arm64 ;; *) DOTNET_ARCH=x64 ;; esac \
+    && mkdir -p /opt/toth/tools/dotnet \
+    && curl -fsSL \
+        "https://builds.dotnet.microsoft.com/dotnet/Runtime/${DOTNET_RUNTIME_VERSION}/dotnet-runtime-${DOTNET_RUNTIME_VERSION}-linux-${DOTNET_ARCH}.tar.gz" \
+        -o /tmp/dotnet-runtime.tar.gz \
+    && tar -xzf /tmp/dotnet-runtime.tar.gz -C /opt/toth/tools/dotnet \
+    && ln -s /opt/toth/tools/dotnet/dotnet /usr/local/bin/dotnet \
+    && rm -f /tmp/dotnet-runtime.tar.gz
+
+RUN mkdir -p /opt/toth/tools/zimmerman/MFTECmd \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/MFTECmd.zip" -o /tmp/mftecmd.zip \
+    && unzip -q /tmp/mftecmd.zip -d /opt/toth/tools/zimmerman/MFTECmd \
+    && rm -f /tmp/mftecmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/MFTECmd/MFTECmd.dll "$@"\n' \
+        > /usr/local/bin/mftecmd \
+    && chmod +x /usr/local/bin/mftecmd
+
+RUN mkdir -p /opt/toth/tools/zimmerman/PECmd \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/PECmd.zip" -o /tmp/pecmd.zip \
+    && unzip -q /tmp/pecmd.zip -d /opt/toth/tools/zimmerman/PECmd \
+    && rm -f /tmp/pecmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/PECmd/PECmd.dll "$@"\n' \
+        > /usr/local/bin/pecmd \
+    && chmod +x /usr/local/bin/pecmd
+
+RUN mkdir -p /opt/toth/tools/zimmerman/LECmd \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/LECmd.zip" -o /tmp/lecmd.zip \
+    && unzip -q /tmp/lecmd.zip -d /opt/toth/tools/zimmerman/LECmd \
+    && rm -f /tmp/lecmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/LECmd/LECmd.dll "$@"\n' \
+        > /usr/local/bin/lecmd \
+    && chmod +x /usr/local/bin/lecmd
+
+RUN mkdir -p /opt/toth/tools/zimmerman/JLECmd \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/JLECmd.zip" -o /tmp/jlecmd.zip \
+    && unzip -q /tmp/jlecmd.zip -d /opt/toth/tools/zimmerman/JLECmd \
+    && rm -f /tmp/jlecmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/JLECmd/JLECmd.dll "$@"\n' \
+        > /usr/local/bin/jlecmd \
+    && chmod +x /usr/local/bin/jlecmd
+
+RUN mkdir -p /opt/toth/tools/zimmerman/SBECmd \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/SBECmd.zip" -o /tmp/sbecmd.zip \
+    && unzip -q /tmp/sbecmd.zip -d /opt/toth/tools/zimmerman/SBECmd \
+    && rm -f /tmp/sbecmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/SBECmd/SBECmd.dll "$@"\n' \
+        > /usr/local/bin/sbecmd \
+    && chmod +x /usr/local/bin/sbecmd
+
+RUN mkdir -p /opt/toth/tools/zimmerman/AmcacheParser \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/AmcacheParser.zip" -o /tmp/amcacheparser.zip \
+    && unzip -q /tmp/amcacheparser.zip -d /opt/toth/tools/zimmerman/AmcacheParser \
+    && rm -f /tmp/amcacheparser.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/AmcacheParser/AmcacheParser.dll "$@"\n' \
+        > /usr/local/bin/amcacheparser \
+    && chmod +x /usr/local/bin/amcacheparser
+
+# RECmd's archive bundles its own Plugins/ (registry-key parsers) and
+# BatchExamples/ (.reb rule files) under a top-level RECmd/ directory,
+# unlike the flat archives above -- unzip one level up so the layout lands
+# at /opt/toth/tools/zimmerman/RECmd/{RECmd.dll,Plugins,BatchExamples}.
+RUN mkdir -p /opt/toth/tools/zimmerman \
+    && curl -fsSL "${EZTOOLS_BASE_URL}/RECmd.zip" -o /tmp/recmd.zip \
+    && unzip -q /tmp/recmd.zip -d /opt/toth/tools/zimmerman \
+    && rm -f /tmp/recmd.zip \
+    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/RECmd/RECmd.dll "$@"\n' \
+        > /usr/local/bin/recmd \
+    && chmod +x /usr/local/bin/recmd
+
 # Threat intel and Linux host forensics packages (lynis/chkrootkit/rkhunter
 # audit the host they run on; see docs/known-limitations.md)
 RUN apt-get update \
@@ -164,6 +263,17 @@ RUN command -v bulk_extractor \
     && command -v lynis \
     && command -v chkrootkit \
     && command -v rkhunter \
+    && command -v fls \
+    && command -v icat \
+    && command -v mmls \
+    && command -v dotnet \
+    && command -v mftecmd \
+    && command -v pecmd \
+    && command -v lecmd \
+    && command -v jlecmd \
+    && command -v sbecmd \
+    && command -v amcacheparser \
+    && command -v recmd \
     && test -d /opt/toth/rules/sigma
 
 # Workspace and permissions

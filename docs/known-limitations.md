@@ -66,6 +66,15 @@ that users and contributors should know before relying on it in a real case.
 - Images are intended to build on `amd64` and `arm64`.
 - Detect It Easy CLI (`diec`) is installed on `amd64` only because the upstream
   Linux release used by Toth does not provide an arm64 package.
+- Eric Zimmerman's tools (`MFTECmd`, `PECmd`, `LECmd`, `JLECmd`, `SBECmd`,
+  `AmcacheParser`, `RECmd`) install and run on both `amd64` and `arm64`, but
+  not via apt: they ship as .NET 9 framework-dependent builds (no
+  self-contained native binary is published upstream), and
+  packages.microsoft.com's Ubuntu 22.04 apt feed only carries
+  `dotnet-runtime-9.0` for `amd64`. The `dfir` image instead installs the
+  official .NET runtime from Microsoft's direct per-architecture tarball,
+  which is published for both `amd64` and `arm64`, so this does not become a
+  `diec`-style single-arch carve-out.
 - Some upstream forensic tools may change archive names, checksums, package
   dependencies, or Python compatibility without notice.
 
