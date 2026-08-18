@@ -6,7 +6,7 @@ TOTH=(python3 "$ROOT/wrapper/toth.py")
 
 "${TOTH[@]}" --version | grep -q "toth 0.2.0"
 "${TOTH[@]}" --help | grep -q "Blue Team Docker distribution"
-"${TOTH[@]}" --help | grep -q "list,status,start,enter,restart,stop,remove,rm,exec,shell,update,case"
+"${TOTH[@]}" --help | grep -q "list,status,start,enter,restart,stop,remove,rm,exec,shell,update,case,vpn"
 "${TOTH[@]}" --help | grep -q "pull images or build them locally"
 "${TOTH[@]}" list | grep -q "toth-dfir:0.2.0"
 "${TOTH[@]}" list | grep -q "ghcr.io/xlxxt/toth-dfir:0.2.0"
@@ -78,6 +78,12 @@ TOTH_PROFILE_BASE_TAG="override-test" "${TOTH[@]}" list | grep -q "ghcr.io/xlxxt
 "${TOTH[@]}" case use --help | grep -q "name"
 "${TOTH[@]}" case current --help | grep -q "usage: toth case current"
 
+"${TOTH[@]}" vpn --help | grep -q "add,remove,show"
+"${TOTH[@]}" vpn add --help | grep -q -- "--creds"
+"${TOTH[@]}" vpn add --help | grep -q -- "--force"
+"${TOTH[@]}" vpn remove --help | grep -q "usage: toth vpn remove"
+"${TOTH[@]}" vpn show --help | grep -q "usage: toth vpn show"
+
 # Case commands are filesystem-only and must work without Docker installed
 # or reachable, and must not touch any files without an explicit workspace.
 CASE_WORKSPACE="$(mktemp -d)"
@@ -100,10 +106,59 @@ set +e
 TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" case use nope 2>&1 | grep -q "does not exist"
 set -e
 
+# VPN config storage/CLI (step 1 of docs/roadmap-vpn.md): pure filesystem
+# work, no Docker involved. Uses the same case-scoped scratch workspace as
+# the case tests above, and 'alpha'/'beta' cases already created there.
+VPN_SRC="$(mktemp -d)"
+trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC"' EXIT
+printf 'fake openvpn config\n' > "$VPN_SRC/config.ovpn"
+printf 'analyst\nhunter2\n' > "$VPN_SRC/creds.txt"
+printf '[Interface]\n' > "$VPN_SRC/config.conf"
+printf 'wrong extension\n' > "$VPN_SRC/config.wrong"
+
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show alpha | grep -q "No VPN config set"
+
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn add alpha "$VPN_SRC/config.ovpn" --creds "$VPN_SRC/creds.txt" \
+  | grep -q "OpenVPN config added to case 'alpha'"
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show alpha | grep -q "kind: OpenVPN"
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show alpha | grep -q "creds: present"
+[ -f "$CASE_WORKSPACE/vpn/alpha/config.ovpn" ]
+[ "$(stat -c '%a' "$CASE_WORKSPACE/vpn/alpha/creds.txt")" = "600" ]
+
+# Re-adding without --force must be refused.
+set +e
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn add alpha "$VPN_SRC/config.ovpn" 2>&1 | grep -q "Use --force to overwrite"
+set -e
+
+# --force allows the overwrite.
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn add alpha "$VPN_SRC/config.ovpn" --force \
+  | grep -q "OpenVPN config added to case 'alpha'"
+
+# A different case gets a WireGuard config, detected as a different kind.
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn add beta "$VPN_SRC/config.conf" \
+  | grep -q "WireGuard config added to case 'beta'"
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show beta | grep -q "kind: WireGuard"
+[ -f "$CASE_WORKSPACE/vpn/beta/config.conf" ]
+
+# 'vpn show' with no case argument resolves the active case (alpha, per the
+# case tests above).
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" case use alpha >/dev/null
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show | grep -q "case: alpha"
+
+# Wrong extension is rejected with a clear error.
+set +e
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn add alpha "$VPN_SRC/config.wrong" 2>&1 | grep -q "unrecognized VPN config extension"
+set -e
+
+# Removal cleans up the case's vpn directory.
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn remove alpha | grep -q "VPN config removed from case 'alpha'"
+TOTH_WORKSPACE="$CASE_WORKSPACE" "${TOTH[@]}" vpn show alpha | grep -q "No VPN config set"
+[ ! -e "$CASE_WORKSPACE/vpn/alpha/config.ovpn" ]
+
 # Legacy fallback: a fresh workspace with no .active-case file must behave
 # exactly as before this feature -- flat cases/ and output/ directories.
 LEGACY_WORKSPACE="$(mktemp -d)"
-trap 'rm -rf "$CASE_WORKSPACE" "$LEGACY_WORKSPACE"' EXIT
+trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC" "$LEGACY_WORKSPACE"' EXIT
 TOTH_WORKSPACE="$LEGACY_WORKSPACE" "${TOTH[@]}" case current | grep -q "legacy workspace mode"
 [ ! -e "$LEGACY_WORKSPACE/.active-case" ]
 
