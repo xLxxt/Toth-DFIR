@@ -54,7 +54,7 @@ it uses `~/.bashrc`.
 
 ## Public install
 
-Once the repository is public, the standard install is:
+The repository is public. The standard install is:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/xLxxt/Toth-DFIR/dev/install.sh | bash
