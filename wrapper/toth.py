@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from commands import case as case_cmd
 from commands import list as list_cmd
 from commands import shell as shell_cmd
+from commands import vpn as vpn_cmd
 from commands import enter, remove, restart, start, status, stop, update
 from commands import exec as exec_cmd
 from utils import config
@@ -103,6 +104,26 @@ def build_parser():
 
     p_case_current = case_sub.add_parser("current", help="show the active case")
     p_case_current.set_defaults(func=case_cmd.current)
+
+    p_vpn = sub.add_parser(
+        "vpn", help="manage per-case VPN config storage (does not connect anything yet)"
+    )
+    vpn_sub = p_vpn.add_subparsers(dest="vpn_command", required=True)
+
+    p_vpn_add = vpn_sub.add_parser("add", help="store a VPN config for a case")
+    p_vpn_add.add_argument("case")
+    p_vpn_add.add_argument("file", help="a .ovpn (OpenVPN) or .conf (WireGuard) file")
+    p_vpn_add.add_argument("--creds", help="optional OpenVPN user/pass creds file (line 1: user, line 2: password)")
+    p_vpn_add.add_argument("--force", action="store_true", help="overwrite an existing VPN config for this case")
+    p_vpn_add.set_defaults(func=vpn_cmd.add)
+
+    p_vpn_remove = vpn_sub.add_parser("remove", help="remove a case's stored VPN config")
+    p_vpn_remove.add_argument("case")
+    p_vpn_remove.set_defaults(func=vpn_cmd.remove)
+
+    p_vpn_show = vpn_sub.add_parser("show", help="show the VPN config stored for a case")
+    p_vpn_show.add_argument("case", nargs="?", default=None, help="defaults to the active case")
+    p_vpn_show.set_defaults(func=vpn_cmd.show)
 
     return parser
 

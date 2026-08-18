@@ -297,6 +297,55 @@ With no active case, `/cases` and `/opt/toth/output` mount the flat
 and requires no setup. Once a case is active, every profile mounts that
 case's own `cases/<name>/` and `output/<name>/` subdirectories instead.
 
+## Store a per-case VPN config
+
+Toth can hold a VPN config (OpenVPN `.ovpn` or WireGuard `.conf`) alongside a
+case, in `~/toth/workspace/vpn/<case-name>/`. **This step is storage and
+inspection only** -- nothing in the wrapper or the containers reads this
+config yet, so `toth vpn add` does not connect anything or start a tunnel.
+See `docs/known-limitations.md` for what's still missing before a VPN
+actually gets used by a container.
+
+Add a config to a case (the case must already exist):
+
+```bash
+toth vpn add acme-intrusion-2026 ~/Downloads/acme-htb.ovpn
+```
+
+This copies the file (not a symlink) to
+`~/toth/workspace/vpn/acme-intrusion-2026/config.ovpn`. A `.conf` file is
+detected as WireGuard instead and copied to `config.conf` -- a case holds at
+most one config, OpenVPN and WireGuard are mutually exclusive.
+
+For OpenVPN username/password auth, attach a creds file (line 1: username,
+line 2: password); its permissions are tightened to `600` (owner-only) when
+it's written:
+
+```bash
+toth vpn add acme-intrusion-2026 ~/Downloads/acme-htb.ovpn --creds ~/Downloads/acme-creds.txt
+```
+
+`toth vpn add` refuses to overwrite an existing config for a case unless you
+pass `--force`:
+
+```bash
+toth vpn add acme-intrusion-2026 ~/Downloads/acme-htb-renewed.ovpn --force
+```
+
+Show what's stored for a case (defaults to the active case; never prints
+`creds.txt` contents):
+
+```bash
+toth vpn show
+toth vpn show acme-intrusion-2026
+```
+
+Remove a case's stored VPN config:
+
+```bash
+toth vpn remove acme-intrusion-2026
+```
+
 ## Run one command
 
 ```bash

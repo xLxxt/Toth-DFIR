@@ -7,7 +7,15 @@ that users and contributors should know before relying on it in a real case.
 
 - The project is currently built around the `dev` branch.
 - The wrapper CLI supports `list`, `status`, `start`, `enter`, `restart`,
-  `shell`, `exec`, `stop`, `remove`, `update`, and `case`.
+  `shell`, `exec`, `stop`, `remove`, `update`, `case`, and `vpn`.
+- `toth vpn add/remove/show` (see `docs/usage.md`) only stores a per-case VPN
+  config (OpenVPN `.ovpn` or WireGuard `.conf`, plus an optional OpenVPN
+  creds file) under `~/toth/workspace/vpn/<case>/`. This is the storage/CLI
+  layer only -- **no container mounts it, no tunnel gets established, and no
+  profile grants the capabilities (`NET_ADMIN`, `/dev/net/tun`) a real VPN
+  connection needs.** Wiring this into `docker_manager.py`'s symlink shim,
+  `docker-compose.yml`, and a root-first container entrypoint is deliberately
+  deferred, larger-scope follow-up work (see `docs/roadmap-vpn.md`).
 - Per-profile image/tag overrides for the four built-in profiles are
   supported via `.env` (`TOTH_PROFILE_<NAME>_IMAGE` /
   `TOTH_PROFILE_<NAME>_TAG`, see `docs/usage.md`). Defining entirely new,
