@@ -33,14 +33,39 @@ ready-to-use, reproducible and collaborative environment for:
 
 ---
 
+## Quick tour
+
+```text
+$ toth case new acme-ransomware-2026-08
+[+] Case created: acme-ransomware-2026-08
+
+$ toth shell dfir
+analyst@toth-dfir:/cases$ vol3 -f memory.raw windows.pstree.PsTree
+analyst@toth-dfir:/cases$ chainsaw hunt evtx/ --sigma /opt/toth/rules/sigma \
+    --mapping /opt/toth/tools/chainsaw/mappings/sigma-event-logs-all.yml
+analyst@toth-dfir:/cases$ exit
+
+$ toth exec --gui network wireshark
+# Wireshark opens on your own desktop, same mechanism as `ssh -X`
+```
+
+Everything an analyst does lands under a per-case, per-profile directory on
+the host (`~/toth/workspace/cases/acme-ransomware-2026-08/`), not scattered
+across whatever container happened to be running. See
+[docs/usage.md](docs/usage.md) for the full command set.
+
+---
+
 ## Images
 
-| Profile   | Image           | Focus                                      |
-|-----------|-----------------|--------------------------------------------|
-| `base`    | `toth-base`     | Shared tooling, shell and helpers          |
-| `dfir`    | `toth-dfir`     | Volatility3, Chainsaw, Hayabusa, Plaso     |
-| `malware` | `toth-malware`  | YARA, capa, FLOSS, oletools, DIE           |
-| `network` | `toth-network`  | tshark, Zeek, Suricata, tcpdump            |
+| Profile   | Image           | Focus                                            |
+|-----------|-----------------|---------------------------------------------------|
+| `base`    | `toth-base`     | Shared tooling, shell and helpers                  |
+| `dfir`    | `toth-dfir`     | Volatility3, Chainsaw, Hayabusa, Plaso, RegRipper  |
+| `malware` | `toth-malware`  | YARA, capa, FLOSS, oletools, DIE, radare2          |
+| `network` | `toth-network`  | tshark, Zeek, Suricata, tcpdump, dnstwist, Wireshark GUI |
+
+Full tool inventory: [docs/tools-list.md](docs/tools-list.md).
 
 ---
 
@@ -93,12 +118,18 @@ toth restart dfir
 toth stop dfir
 toth remove dfir
 toth update
+
+toth case new <name>      # isolate this engagement's evidence/output
+toth case use <name>
+toth case list
+
+toth shell --gui network  # GUI tools (Wireshark) on your own desktop
 ```
 
 `toth shell <profile>` starts the container if needed and drops you into a
 shell. `toth exec <profile> <command>` runs a single command. Your cases live
 under `$TOTH_WORKSPACE` or `~/toth/workspace` by default, and are mounted at
-`/cases`.
+`/cases` -- scoped to the active `toth case` when one is set.
 
 Profiles: `base`, `dfir`, `malware`, `network`.
 
