@@ -106,7 +106,12 @@ def build_parser():
     p_case_current.set_defaults(func=case_cmd.current)
 
     p_vpn = sub.add_parser(
-        "vpn", help="manage per-case VPN config storage (does not connect anything yet)"
+        "vpn",
+        help=(
+            "manage per-case VPN config storage; auto-connected by the "
+            "network profile's entrypoint on next container start "
+            "(network profile only, see docs/roadmap-vpn.md)"
+        ),
     )
     vpn_sub = p_vpn.add_subparsers(dest="vpn_command", required=True)
 

@@ -19,6 +19,21 @@ def _vpn_dir(case_name):
     return _workspace() / "vpn" / case_name
 
 
+def vpn_dir(case_name):
+    """Public accessor for a case's VPN config directory.
+
+    docker_manager's per-case mount symlink shim needs this path to point
+    its `vpn` symlink at (see docker_manager._resolve_workspace()) -- this
+    is a thin wrapper around _vpn_dir() so callers outside this module
+    reuse the workspace/vpn/<case> layout decision made here instead of
+    reimplementing it. Does not require the directory to exist; the caller
+    (docker_manager._ensure_case_mount_link()) creates it if missing, which
+    also naturally serves as the "empty placeholder" for a case with no VPN
+    config yet (see docs/roadmap-vpn.md section 2).
+    """
+    return _vpn_dir(case_name)
+
+
 def vpn_paths(case_name):
     """Inspect <workspace>/vpn/<case_name>/ and report what's there.
 

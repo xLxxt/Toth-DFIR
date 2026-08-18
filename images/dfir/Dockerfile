@@ -290,7 +290,15 @@ RUN mkdir -p \
         /cases
 
 # Runtime
-USER analyst
+#
+# No `USER analyst` here -- inherited from images/base/Dockerfile, whose
+# root-first ENTRYPOINT (see docs/roadmap-vpn.md section 4) needs the
+# image's baked-in default user to stay root. This profile never mounts
+# /opt/toth/vpn or gets the VPN capability grant (network-only in v1, see
+# section 3), so the entrypoint no-ops immediately here regardless --
+# behavior is unchanged -- but re-asserting `USER analyst` in a derived
+# Dockerfile would still be wrong in general, since Docker uses the *last*
+# USER directive across all layers as the image's default. ENTRYPOINT/CMD
+# are also inherited from base; only WORKDIR is redeclared here (a no-op,
+# base already sets it) for clarity.
 WORKDIR /cases
-
-CMD ["/bin/bash"]

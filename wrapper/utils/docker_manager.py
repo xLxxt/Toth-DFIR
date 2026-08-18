@@ -5,6 +5,19 @@ import sys
 from pathlib import Path
 
 from utils import case, config
+from utils import vpn as vpn_utils
+
+# Every profile's image now bakes in a root-first ENTRYPOINT (see
+# images/base/Dockerfile / config/entrypoint/vpn-entrypoint.sh) so it can
+# optionally bring up a VPN tunnel before dropping to the `analyst` user via
+# gosu. That means the image's own baked-in default user is root (needed for
+# the entrypoint to have privileges at all) rather than `analyst` as it was
+# before -- `docker exec`/`docker compose exec` sessions created *after* the
+# container is already running don't go through the entrypoint at all, so
+# they'd otherwise silently default to root too. Pin them to analyst
+# explicitly wherever exec is used below to keep `toth shell`/`toth enter`
+# behavior identical to before this change, for every profile.
+EXEC_USER = "analyst"
 
 
 class DockerError(RuntimeError):
@@ -30,27 +43,46 @@ def _ensure_case_mount_link(link_path, target_dir):
 def _resolve_workspace():
     """Resolve the TOTH_WORKSPACE value handed to docker/compose.
 
-    docker-compose.yml unconditionally mounts ${TOTH_WORKSPACE}/cases and
-    ${TOTH_WORKSPACE}/output. With no active case, TOTH_WORKSPACE is the
+    docker-compose.yml unconditionally mounts ${TOTH_WORKSPACE}/cases,
+    ${TOTH_WORKSPACE}/output, and (toth-network only)
+    ${TOTH_WORKSPACE}/vpn. With no active case, TOTH_WORKSPACE is the
     workspace root, so those mounts resolve to the legacy flat directories
     (unchanged behavior). With an active case, the real per-case
-    directories live at <workspace>/cases/<name> and
-    <workspace>/output/<name> (see utils.case) -- two independent trees
-    that a single "root + fixed suffix" pattern can't reach directly. To
-    keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a small
-    per-case shim directory containing "cases" and "output" symlinks into
-    those real directories.
+    directories live at <workspace>/cases/<name>, <workspace>/output/<name>,
+    and <workspace>/vpn/<name> (see utils.case / utils.vpn) -- independent
+    trees that a single "root + fixed suffix" pattern can't reach directly.
+    To keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a
+    small per-case shim directory containing "cases", "output", and "vpn"
+    symlinks into those real directories.
+
+    No-active-case /opt/toth/vpn resolution (judgment call, not spelled out
+    in docs/roadmap-vpn.md): VPN config is strictly per-case by design (see
+    that doc's section 1 -- there is no flat/global VPN concept, and
+    utils.vpn.add_vpn_config() refuses to run without a valid case via
+    _require_case()). So in flat/legacy mode (no case ever activated),
+    <workspace>/vpn can never legitimately hold a config; it is pre-created
+    here only so the bind-mount source always exists and is always an empty
+    directory -- the same "no VPN configured" signal the per-case shim
+    below gives a case with no VPN dir yet, just applied at the workspace
+    root instead of a per-case path.
     """
     workspace = Path(config.WORKSPACE).expanduser()
     active = case.active_case()
     if active is None:
+        (workspace / "vpn").mkdir(parents=True, exist_ok=True)
         return str(workspace)
 
     cases_dir, output_dir = case.case_paths(active)
+    vpn_dir = vpn_utils.vpn_dir(active)
     mount_root = workspace / ".case-mounts" / active
     mount_root.mkdir(parents=True, exist_ok=True)
     _ensure_case_mount_link(mount_root / "cases", cases_dir)
     _ensure_case_mount_link(mount_root / "output", output_dir)
+    # _ensure_case_mount_link() always mkdir's the target first, so a case
+    # with no VPN config yet gets an empty vpn_dir -- exactly the "no VPN
+    # configured for this case" placeholder docs/roadmap-vpn.md section 2
+    # calls for, with no separate placeholder path needed.
+    _ensure_case_mount_link(mount_root / "vpn", vpn_dir)
     return str(mount_root)
 
 
@@ -222,7 +254,7 @@ def stop(svc):
 
 
 def shell(svc, command, gui=False):
-    return _compose(["exec", svc] + command, gui=gui)
+    return _compose(["exec", "--user", EXEC_USER, svc] + command, gui=gui)
 
 
 def enter(svc, command):
@@ -235,7 +267,7 @@ def enter(svc, command):
     exec_flags = ["-i"]
     if sys.stdin.isatty():
         exec_flags.append("-t")
-    return _run(["exec"] + exec_flags + [svc] + command)
+    return _run(["exec"] + exec_flags + ["--user", EXEC_USER, svc] + command)
 
 
 def restart(svc):

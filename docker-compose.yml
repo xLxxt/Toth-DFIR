@@ -38,6 +38,23 @@ services:
     volumes:
       - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
       - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
+      # VPN config for the active case (read-only), auto-detected and
+      # connected by the base image's entrypoint at container start. See
+      # docs/roadmap-vpn.md section 2: network-only for v1 (see section 3),
+      # entrypoint no-ops silently when this directory has no config.
+      - ${TOTH_WORKSPACE:-./workspace}/vpn:/opt/toth/vpn:ro
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # NET_ADMIN (already present above for packet capture) plus raw
+    # /dev/net/tun access and the sysctls below are what OpenVPN/WireGuard
+    # need to create a tun interface and route traffic through it. Granted
+    # unconditionally per docs/roadmap-vpn.md section 2 (option (a)); the
+    # entrypoint's own config-presence check is what makes actual VPN
+    # connection attempts conditional per-case, not this compose file. See
+    # that doc's section 6 for why this specific grant needs its own sign-off.
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1

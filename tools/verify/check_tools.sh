@@ -75,6 +75,9 @@ check_cmd "binwalk"
 check_cmd "exiftool"
 check_cmd "net-tools" "ifconfig"
 check_cmd "dnsutils" "dig"
+check_cmd "OpenVPN" "openvpn"
+check_cmd "WireGuard" "wg-quick"
+check_cmd "gosu" "gosu"
 
 # =============================================================================
 # DFIR

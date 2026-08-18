@@ -72,6 +72,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     foremost \
     binwalk \
     exiftool \
+    openvpn \
+    wireguard-tools \
+    gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -91,7 +94,10 @@ RUN command -v curl \
     && command -v fd \
     && command -v rg \
     && command -v binwalk \
-    && command -v exiftool
+    && command -v exiftool \
+    && command -v openvpn \
+    && command -v wg-quick \
+    && command -v gosu
 
 # Runtime user
 RUN groupadd -g 1000 analyst \
@@ -109,8 +115,12 @@ RUN mkdir -p \
 # Shell configuration and helper scripts
 COPY --chown=analyst:analyst config/shell/aliases.sh /opt/toth/aliases.sh
 COPY --chown=analyst:analyst tools/verify/check_tools.sh /opt/toth/scripts/check_tools.sh
+# Root-owned, unlike the two scripts above: this one runs as root before
+# any privilege drop happens (see docs/roadmap-vpn.md section 4), so it
+# deliberately stays outside analyst's write access.
+COPY config/entrypoint/vpn-entrypoint.sh /opt/toth/scripts/vpn-entrypoint.sh
 
-RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh \
+RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh /opt/toth/scripts/vpn-entrypoint.sh \
     && ln -s /opt/toth/scripts/check_tools.sh /usr/local/bin/toth-check
 
 RUN echo 'source /opt/toth/aliases.sh' >> /home/analyst/.bashrc \
@@ -121,7 +131,18 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD bash /opt/toth/scripts/check_tools.sh || exit 1
 
 # Runtime
-USER analyst
+#
+# No trailing `USER analyst` here (a change from before this VPN work):
+# every image's baked-in default user must stay root so the ENTRYPOINT
+# below actually starts as root (needed to bring up a VPN tunnel -- see
+# docs/roadmap-vpn.md section 4). The entrypoint itself is what drops
+# privileges to `analyst` via gosu before execing CMD, so the CMD process
+# analysts actually interact with still ends up running as `analyst`,
+# same as before. `docker exec`/`docker compose exec` sessions started
+# against an already-running container don't go through the entrypoint,
+# so wrapper/utils/docker_manager.py now pins those to `--user analyst`
+# explicitly to keep `toth shell`/`toth enter` behavior unchanged.
 WORKDIR /cases
 
+ENTRYPOINT ["/opt/toth/scripts/vpn-entrypoint.sh"]
 CMD ["/bin/bash"]
