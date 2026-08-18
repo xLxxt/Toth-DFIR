@@ -26,6 +26,23 @@ USER root
 WORKDIR /opt/toth/tools
 
 # System packages
+#
+# `wireshark` (on top of `wireshark-common`) pulls in `wireshark-qt`, the
+# actual GUI binary, plus its Qt5/X11 dependency chain -- confirmed via
+# `apt-cache depends wireshark` during the X11-forwarding scoping
+# (docs/roadmap-x11-forwarding.md). `libcap2-bin` provides `setcap`, used
+# right below.
+#
+# The `setcap` line: with DEBIAN_FRONTEND=noninteractive (set project-wide),
+# wireshark-common's postinst silently takes debconf's default answer to
+# "let non-superusers capture packets?", which is "no" on Ubuntu 22.04 --
+# dumpcap ships with no elevated capabilities and non-root capture fails
+# outright, even with the container's own NET_ADMIN/NET_RAW cap_add (a
+# binary only gets to use capabilities from the container's bounding set if
+# the binary itself carries matching file capabilities or is setuid-root).
+# This single setcap line does by hand what the interactive postinst prompt
+# would have done, and was confirmed by direct testing during the scoping
+# above to fix non-root `dumpcap`/`tshark` capture, not just Wireshark GUI.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         tshark \
@@ -36,8 +53,11 @@ RUN apt-get update \
         ngrep \
         tcpflow \
         wireshark-common \
+        wireshark \
+        libcap2-bin \
         software-properties-common \
         gnupg \
+    && setcap cap_net_raw,cap_net_admin+eip /usr/bin/dumpcap \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -86,7 +106,9 @@ RUN command -v tshark \
     && command -v dnstwist \
     && command -v zeek \
     && command -v zeekctl \
-    && command -v suricata
+    && command -v suricata \
+    && command -v wireshark \
+    && command -v dumpcap
 
 # Runtime
 USER analyst

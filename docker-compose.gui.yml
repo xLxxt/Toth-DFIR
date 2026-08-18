@@ -1,0 +1,44 @@
+# GUI (X11 forwarding) override.
+#
+# Not loaded by default. The wrapper layers this in on top of
+# docker-compose.yml, only for invocations that opt in with --gui
+# (see wrapper/utils/docker_manager.py's _compose_args()):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gui.yml ...
+#
+# It shares the host's already-running X server with the container instead
+# of running a display server inside it: bind-mount the host's X11 socket
+# directory and the host's .Xauthority cookie (read-only), then point
+# DISPLAY/XAUTHORITY at them. This only works when the container and the X
+# server are on the same machine -- see docs/usage.md's "Run GUI apps"
+# section for that limitation and the X11-exposure security trade-off.
+#
+# TOTH_XAUTHORITY is resolved by the wrapper (utils/docker_manager.py's
+# _env(), mirroring how TOTH_WORKSPACE is resolved) from $XAUTHORITY,
+# falling back to ~/.Xauthority -- the same fallback X11 client libraries
+# use. It is always set by the wrapper, gui or not, so interpolation here
+# never hits Compose's "variable not set" warning on a non-GUI invocation.
+#
+# Deliberately generic across all four profiles: the mechanism has nothing
+# profile-specific about it, even though Wireshark (network) is the first
+# tool that ships with a GUI package installed.
+x-gui: &gui
+  environment:
+    - DISPLAY=${DISPLAY}
+    - XAUTHORITY=/home/analyst/.Xauthority
+  volumes:
+    - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    - ${TOTH_XAUTHORITY}:/home/analyst/.Xauthority:ro
+
+services:
+  toth-base:
+    <<: *gui
+
+  toth-dfir:
+    <<: *gui
+
+  toth-malware:
+    <<: *gui
+
+  toth-network:
+    <<: *gui

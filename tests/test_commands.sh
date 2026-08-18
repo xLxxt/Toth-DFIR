@@ -22,6 +22,49 @@ TOTH=(python3 "$ROOT/wrapper/toth.py")
 "${TOTH[@]}" update --help | grep -q "base,dfir,malware,network,all"
 "${TOTH[@]}" update --help | grep -q -- "--build"
 
+# --gui (X11 forwarding): available on start/exec/shell (the commands that
+# call `docker compose up`, i.e. actually create/recreate the container and
+# so decide which compose files get layered in). No real X server exists in
+# this sandboxed/CI environment, so these are structural argparse checks,
+# not a real GUI pop-up test.
+"${TOTH[@]}" start --help | grep -q -- "--gui"
+"${TOTH[@]}" exec --help | grep -q -- "--gui"
+"${TOTH[@]}" shell --help | grep -q -- "--gui"
+
+# enter re-attaches to an already-existing container via `docker start`/
+# `docker exec` directly -- it never calls `docker compose up`, so it never
+# re-evaluates which compose files are layered in, and deliberately does not
+# expose --gui (a container's GUI mounts are fixed at creation time by
+# start/exec/shell --gui). Assert it stays absent so this scope decision
+# doesn't silently drift.
+"${TOTH[@]}" enter --help | grep -qv -- "--gui"
+
+# The flag must actually change the constructed `docker compose` argv
+# (compose-file layering), and the no-flag path must be byte-for-byte
+# unchanged from before --gui existed -- this is the regression that
+# matters most, so it's checked directly against docker_manager._compose_args
+# (a pure function, no subprocess/Docker/X server involved) rather than only
+# at the argparse level.
+python3 - "$ROOT" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1] + "/wrapper")
+from utils import docker_manager as dm
+
+no_flag = dm._compose_args(["up", "-d", "toth-network"])
+gui_false = dm._compose_args(["up", "-d", "toth-network"], gui=False)
+gui_true = dm._compose_args(["up", "-d", "toth-network"], gui=True)
+
+assert no_flag == ["compose", "up", "-d", "toth-network"], no_flag
+assert gui_false == no_flag, gui_false
+assert gui_true == [
+    "compose",
+    "-f", "docker-compose.yml",
+    "-f", "docker-compose.gui.yml",
+    "up", "-d", "toth-network",
+], gui_true
+print("[+] docker_manager._compose_args --gui plumbing OK")
+PY
+
 # Per-profile config overrides (Phase 2, Tier 1): a TOTH_PROFILE_<NAME>_TAG
 # env var should surface in `toth list` output for that profile only, and
 # remote_image() (GHCR pull target) must stay unaffected.

@@ -48,6 +48,33 @@ Case state itself (`$TOTH_WORKSPACE/.active-case`) is separate from the
 repo's `.env`: `.env` holds static per-profile configuration, while the
 active case is mutable runtime state scoped to the workspace.
 
+### GUI apps (X11 forwarding)
+
+`--gui` (on `start`/`shell`/`exec`) is a cross-cutting capability, not a
+profile: it applies uniformly to all four services rather than being
+hardcoded to `network`, since sharing the host's X server has nothing
+profile-specific about it. The wrapper layers a second Compose file,
+`docker-compose.gui.yml`, on top of `docker-compose.yml` --
+`docker compose -f docker-compose.yml -f docker-compose.gui.yml ...` -- only
+for invocations that opt in. The override adds an X11 socket bind-mount, a
+read-only `.Xauthority` mount, and `DISPLAY`/`XAUTHORITY` environment
+variables to whichever service is targeted. Without `--gui`,
+`docker-compose.gui.yml` is never referenced and container behavior is
+byte-for-byte unchanged from before the feature existed. `wrapper/utils/
+docker_manager.py`'s `_env()` resolves the host's `.Xauthority` path
+(`$XAUTHORITY`, falling back to `~/.Xauthority`) into `TOTH_XAUTHORITY` for
+every invocation, the same pattern used for `TOTH_WORKSPACE` -- it's only
+consumed by `docker-compose.gui.yml`, so it has no effect on non-GUI runs.
+
+This is deliberately the simpler of two GUI approaches: it shares the
+host's already-running X server via a bind-mounted Unix socket rather than
+running a display server inside the container, so it only works when
+`toth` runs on the same machine as the Docker host's own desktop session.
+noVNC (browser-based, works over SSH to a remote Docker host) is scoped
+separately in `docs/roadmap-phase3.md` and not implemented yet. See
+`docs/usage.md`'s "Run GUI apps" section for the same-machine limitation
+and the X11-exposure security trade-off.
+
 ## Wrapper model
 
 The Python wrapper calls Docker Compose for common operations:
@@ -55,11 +82,13 @@ The Python wrapper calls Docker Compose for common operations:
 - `list`: list available profiles and image tags
 - `status`: show all Toth containers (wrapper-started or launched manually with
   `docker run`), matched by the Toth OCI image label
-- `start`: start a profile container
+- `start`: start a profile container (`--gui` to share the host's X11
+  session, see above)
 - `enter`: enter an existing profile container
 - `restart`: restart an existing profile container
-- `shell`: open an interactive shell in a profile container
-- `exec`: run a command in a profile container
+- `shell`: open an interactive shell in a profile container (`--gui`
+  supported)
+- `exec`: run a command in a profile container (`--gui` supported)
 - `stop`: stop a profile container
 - `remove`: remove an existing profile container
 - `update`: pull images from GHCR or build them locally with `--build`

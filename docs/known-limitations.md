@@ -63,10 +63,18 @@ that users and contributors should know before relying on it in a real case.
 
 ## GUI tools
 
-- The current project phase is container-first and CLI-first.
-- Browser-accessible desktop support with noVNC is planned for Phase 3.
-- GUI-heavy tools such as Autopsy and Wireshark GUI are not the current runtime
-  focus, even when supporting packages are present.
+- X11 forwarding (`--gui` on `start`/`shell`/`exec`, see `docs/usage.md`) is
+  implemented and works uniformly across all four profiles. Wireshark GUI
+  ships in the `network` image as the first concrete tool that uses it.
+- X11 forwarding only works when `toth` runs on the same machine as the
+  Docker host's own desktop session -- it bind-mounts the host's X11 socket,
+  which does not work over a plain SSH session to a remote/shared Docker
+  host the way a browser-based remote desktop would.
+- Browser-accessible desktop support with noVNC -- which *does* work over
+  SSH to a remote Docker host, unlike X11 forwarding -- is planned for
+  Phase 3 and not implemented yet.
+- Autopsy and other GUI-heavy tools beyond Wireshark are not currently
+  packaged in any image.
 
 ## Validation coverage
 
