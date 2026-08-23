@@ -1,43 +1,39 @@
+# Image tags track the version in the VERSION file (0.2.0 at this writing).
+# Override at runtime via TOTH_IMAGE_VERSION (see .env.example); it falls
+# back to 0.2.0 when unset. The wrapper's _env() sets TOTH_IMAGE_VERSION
+# from .env / environment, so `toth run <profile>` uses the matching tag.
+
+x-toth-common: &toth-common
+  image: "toth-base:${TOTH_IMAGE_VERSION:-0.2.0}"
+  stdin_open: true
+  tty: true
+  volumes:
+    - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+    - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
+
 services:
   toth-base:
-    image: toth-base:0.2.0
+    <<: *toth-common
     container_name: toth-base
     network_mode: none
-    stdin_open: true
-    tty: true
-    volumes:
-      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
-      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-dfir:
-    image: toth-dfir:0.2.0
+    image: "toth-dfir:${TOTH_IMAGE_VERSION:-0.2.0}"
+    <<: *toth-common
     container_name: toth-dfir
     network_mode: none
-    stdin_open: true
-    tty: true
-    volumes:
-      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
-      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-malware:
-    image: toth-malware:0.2.0
+    image: "toth-malware:${TOTH_IMAGE_VERSION:-0.2.0}"
+    <<: *toth-common
     container_name: toth-malware
     network_mode: none
-    stdin_open: true
-    tty: true
-    volumes:
-      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
-      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
 
   toth-network:
-    image: toth-network:0.2.0
+    image: "toth-network:${TOTH_IMAGE_VERSION:-0.2.0}"
+    <<: *toth-common
     container_name: toth-network
     network_mode: bridge
-    stdin_open: true
-    tty: true
-    volumes:
-      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
-      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
     cap_add:
       - NET_ADMIN
       - NET_RAW
