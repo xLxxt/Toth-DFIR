@@ -77,6 +77,14 @@ start_openvpn() {
     local rc=0
     openvpn "${args[@]}" || rc=$?
     if [ "$rc" -eq 0 ]; then
+        # openvpn creates $log_file root:root 0600 during its own (still
+        # root, pre-drop) startup phase, before this script's own privilege
+        # drop -- left as-is, `toth exec network cat` (analyst) couldn't
+        # read the log this comment is telling the analyst to go check.
+        # Nothing sensitive lands in it at the default verbosity (no
+        # plaintext passwords; --auth-user-pass creds are never logged by
+        # openvpn), so widening read access here is safe.
+        chmod 644 "$log_file" 2>/dev/null || true
         log "openvpn started, see $log_file for connection status"
     else
         log "openvpn failed to start (exit $rc); continuing without VPN"

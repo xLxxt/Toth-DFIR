@@ -368,6 +368,14 @@ toth exec network cat /var/log/toth-openvpn.log   # OpenVPN only
 toth exec network ip addr show wg0                # or: tun0, for OpenVPN
 ```
 
+`wg show wg0` needs `CAP_NET_ADMIN`, which the unprivileged `analyst` user
+doesn't have even though the container itself does (same reason the tunnel
+setup needs the root-first entrypoint in the first place) -- `toth exec`
+runs as `analyst`, so `wg show` fails with "Operation not permitted" there.
+`ip addr show wg0` (above) doesn't need it and is enough to confirm the
+interface is up; if you specifically need `wg show`'s peer/handshake
+detail, run it as root: `docker exec --user root toth-network wg show wg0`.
+
 If the container was already running when you stored or changed the config,
 restart it to pick up the new mount (same as any other case-mount change,
 see "Manage cases" above):

@@ -11,6 +11,18 @@ class DockerError(RuntimeError):
     pass
 
 
+# Every Toth image's intended interactive user, regardless of which user the
+# image itself is configured to default to. This matters concretely for
+# toth-network: its ENTRYPOINT needs to start as root (to bring up a VPN
+# tunnel), so its image-level USER is root -- but `docker exec`/`docker
+# compose exec` use the image's configured default user, not whatever user
+# the entrypoint-spawned foreground process ends up running as after
+# dropping privileges. Without an explicit --user here, every `toth exec
+# network`/`toth shell network`/`toth enter network` would silently run as
+# root, even though the container's own PID 1 correctly runs as analyst.
+ANALYST_USER = "analyst"
+
+
 def _ensure_case_mount_link(link_path, target_dir):
     target_dir.mkdir(parents=True, exist_ok=True)
     if link_path.is_symlink():
@@ -235,7 +247,7 @@ def stop(svc):
 
 
 def shell(svc, command, gui=False):
-    return _compose(["exec", svc] + command, gui=gui)
+    return _compose(["exec", "--user", ANALYST_USER, svc] + command, gui=gui)
 
 
 def enter(svc, command):
@@ -245,7 +257,7 @@ def enter(svc, command):
     if start_result.returncode != 0:
         _print_process_output(start_result)
         return start_result.returncode
-    exec_flags = ["-i"]
+    exec_flags = ["-i", "--user", ANALYST_USER]
     if sys.stdin.isatty():
         exec_flags.append("-t")
     return _run(["exec"] + exec_flags + [svc] + command)
