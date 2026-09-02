@@ -43,31 +43,29 @@ WORKDIR /opt/toth/tools
 # This single setcap line does by hand what the interactive postinst prompt
 # would have done, and was confirmed by direct testing during the scoping
 # above to fix non-root `dumpcap`/`tshark` capture, not just Wireshark GUI.
+#
+# dnstwist is included here too: prefer the apt package, fall back to pip if
+# the Ubuntu universe package is unavailable -- no second apt-get update
+# needed for the same cache.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        tshark \
-        tcpdump \
-        nmap \
-        netcat-openbsd \
-        whois \
-        ngrep \
-        tcpflow \
-        wireshark-common \
-        wireshark \
-        libcap2-bin \
-        software-properties-common \
-        gnupg \
+    && ( \
+        apt-get install -y --no-install-recommends \
+            tshark \
+            tcpdump \
+            nmap \
+            netcat-openbsd \
+            whois \
+            ngrep \
+            tcpflow \
+            wireshark-common \
+            wireshark \
+            libcap2-bin \
+            software-properties-common \
+            gnupg \
+            dnstwist \
+        || pip3 install --no-cache-dir dnstwist \
+    ) \
     && setcap cap_net_raw,cap_net_admin+eip /usr/bin/dumpcap \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# dnstwist: try apt (Ubuntu universe) first, fall back to pip
-RUN apt-get update \
-    && if apt-get install -y --no-install-recommends dnstwist; then \
-        true; \
-    else \
-        pip3 install --no-cache-dir dnstwist; \
-    fi \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

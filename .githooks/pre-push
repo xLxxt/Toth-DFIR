@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euo pipefail
+
+FAIL=0
+
+# ── ShellCheck on all .sh files (excluding .git) ──────────────────────────
+SHELL_FILES=$(find . -path ./.git -prune -o -name '*.sh' -type f -print 2>/dev/null)
+if [ -n "$SHELL_FILES" ]; then
+    while IFS= read -r f; do
+        if ! shellcheck "$f"; then
+            echo "ERROR: shellcheck failed on $f" >&2
+            FAIL=1
+        fi
+    done <<< "$SHELL_FILES"
+fi
+
+# ── Docker compose config validation ──────────────────────────────────────
+for dc in docker-compose.yml docker-compose.gui.yml; do
+    if [ -f "$dc" ]; then
+        if ! docker compose -f "$dc" config >/dev/null 2>&1; then
+            echo "ERROR: docker compose config validation failed for $dc" >&2
+            FAIL=1
+        fi
+    fi
+done
+
+# ── Python syntax check on all .py files in wrapper/ ──────────────────────
+if [ -d "wrapper" ]; then
+    PY_FILES=$(find wrapper -name '*.py' -type f 2>/dev/null)
+    if [ -n "$PY_FILES" ]; then
+        while IFS= read -r f; do
+            if ! python3 -m py_compile "$f" 2>/dev/null; then
+                echo "ERROR: Python syntax error in $f" >&2
+                FAIL=1
+            fi
+        done <<< "$PY_FILES"
+    fi
+fi
+
+# ── Report ────────────────────────────────────────────────────────────────
+if [ "$FAIL" -ne 0 ]; then
+    echo "Push blocked — fix the errors above." >&2
+    exit 1
+fi
+
+exit 0
