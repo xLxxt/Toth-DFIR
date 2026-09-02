@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import case, config
+from utils import case, config, vpn
 
 
 class DockerError(RuntimeError):
@@ -34,12 +34,15 @@ def _resolve_workspace():
     ${TOTH_WORKSPACE}/output. With no active case, TOTH_WORKSPACE is the
     workspace root, so those mounts resolve to the legacy flat directories
     (unchanged behavior). With an active case, the real per-case
-    directories live at <workspace>/cases/<name> and
-    <workspace>/output/<name> (see utils.case) -- two independent trees
-    that a single "root + fixed suffix" pattern can't reach directly. To
-    keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a small
-    per-case shim directory containing "cases" and "output" symlinks into
-    those real directories.
+    directories live at <workspace>/cases/<name>, <workspace>/output/<name>,
+    and <workspace>/vpn/<name> (see utils.case, utils.vpn) -- independent
+    trees that a single "root + fixed suffix" pattern can't reach directly.
+    To keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a
+    small per-case shim directory containing "cases", "output", and "vpn"
+    symlinks into those real directories. The vpn symlink is created (and
+    its target directory created if it doesn't exist yet) even for cases
+    with no VPN config, so a future VPN bind-mount always has something to
+    mount rather than failing on a missing source path.
     """
     workspace = Path(config.WORKSPACE).expanduser()
     active = case.active_case()
@@ -51,6 +54,7 @@ def _resolve_workspace():
     mount_root.mkdir(parents=True, exist_ok=True)
     _ensure_case_mount_link(mount_root / "cases", cases_dir)
     _ensure_case_mount_link(mount_root / "output", output_dir)
+    _ensure_case_mount_link(mount_root / "vpn", vpn.vpn_dir(active))
     return str(mount_root)
 
 
