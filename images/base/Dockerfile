@@ -72,6 +72,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     foremost \
     binwalk \
     exiftool \
+    openvpn \
+    wireguard-tools \
+    gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -91,7 +94,10 @@ RUN command -v curl \
     && command -v fd \
     && command -v rg \
     && command -v binwalk \
-    && command -v exiftool
+    && command -v exiftool \
+    && command -v openvpn \
+    && command -v wg-quick \
+    && command -v gosu
 
 # Runtime user
 RUN groupadd -g 1000 analyst \
@@ -109,8 +115,13 @@ RUN mkdir -p \
 # Shell configuration and helper scripts
 COPY --chown=analyst:analyst config/shell/aliases.sh /opt/toth/aliases.sh
 COPY --chown=analyst:analyst tools/verify/check_tools.sh /opt/toth/scripts/check_tools.sh
+# Owned by root, not analyst: this is a root-first entrypoint (see
+# config/entrypoint/vpn-entrypoint.sh), only wired in via ENTRYPOINT on
+# images that actually need it (toth-network in v1) -- present but unused
+# here, kept in base so every VPN-capable image shares one copy.
+COPY config/entrypoint/vpn-entrypoint.sh /opt/toth/scripts/vpn-entrypoint.sh
 
-RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh \
+RUN chmod +x /opt/toth/aliases.sh /opt/toth/scripts/check_tools.sh /opt/toth/scripts/vpn-entrypoint.sh \
     && ln -s /opt/toth/scripts/check_tools.sh /usr/local/bin/toth-check
 
 RUN echo 'source /opt/toth/aliases.sh' >> /home/analyst/.bashrc \

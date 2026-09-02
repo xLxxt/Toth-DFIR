@@ -297,14 +297,15 @@ With no active case, `/cases` and `/opt/toth/output` mount the flat
 and requires no setup. Once a case is active, every profile mounts that
 case's own `cases/<name>/` and `output/<name>/` subdirectories instead.
 
-## Store a per-case VPN config
+## Store and connect a per-case VPN config
 
 Toth can hold a VPN config (OpenVPN `.ovpn` or WireGuard `.conf`) alongside a
-case, in `~/toth/workspace/vpn/<case-name>/`. **This step is storage and
-inspection only** -- nothing in the wrapper or the containers reads this
-config yet, so `toth vpn add` does not connect anything or start a tunnel.
-See `docs/known-limitations.md` for what's still missing before a VPN
-actually gets used by a container.
+case, in `~/toth/workspace/vpn/<case-name>/`, and auto-connect it when you
+start the `network` profile -- the natural fit for the CTF Blue Team / HTB
+Sherlock workflow this was built for. **Only `network` connects it.**
+`base`, `dfir`, and `malware` don't mount the config or gain the
+capabilities a tunnel needs, so `toth vpn add` while working in one of those
+profiles just stores the config for later; see `docs/known-limitations.md`.
 
 Add a config to a case (the case must already exist):
 
@@ -345,6 +346,54 @@ Remove a case's stored VPN config:
 ```bash
 toth vpn remove acme-intrusion-2026
 ```
+
+Connect it by starting `network` with that case active -- the tunnel comes
+up automatically before the shell is handed to you, no separate connect
+step:
+
+```bash
+toth case use acme-intrusion-2026
+toth shell network
+```
+
+Check the tunnel came up. The entrypoint's own log (did it find a config, did
+`openvpn`/`wg-quick` launch at all) goes to the container's stdout, prefixed
+`[vpn-entrypoint]`; OpenVPN's own connection log (it detaches immediately, so
+its actual connect/auth result lands here, not in the entrypoint's log) goes
+to a file inside the container:
+
+```bash
+docker logs toth-network
+toth exec network cat /var/log/toth-openvpn.log   # OpenVPN only
+toth exec network ip addr show wg0                # or: tun0, for OpenVPN
+```
+
+If the container was already running when you stored or changed the config,
+restart it to pick up the new mount (same as any other case-mount change,
+see "Manage cases" above):
+
+```bash
+toth restart network
+```
+
+To start `network` *without* attempting to connect (debugging a broken
+tunnel without the entrypoint itself getting in the way), set
+`TOTH_VPN_DISABLE=1` before starting it:
+
+```bash
+TOTH_VPN_DISABLE=1 toth shell network
+```
+
+**A WireGuard config with a `PreUp`/`PostUp`/`PreDown`/`PostDown` line is
+refused, on purpose** -- those directives are shell commands `wg-quick` runs
+as root, and Toth won't auto-run arbitrary commands sourced from a
+third-party config file. Strip the line if you control the config and don't
+need it, or bring the tunnel up by hand instead
+(`TOTH_VPN_DISABLE=1 toth shell network`, then run `wg-quick` yourself with
+whatever review you're comfortable with). OpenVPN configs are auto-connected
+with `--script-security 1` forced regardless of what the file requests, so
+`up`/`down`/`route-up` script directives in an `.ovpn` file are never
+executed either.
 
 ## Run one command
 

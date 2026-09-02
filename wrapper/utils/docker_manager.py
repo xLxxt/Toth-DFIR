@@ -94,6 +94,15 @@ def ensure_workspace():
     cases_dir, output_dir = case.case_paths(case.active_case())
     cases_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    # Flat vpn root for the no-active-case state, mirroring cases_dir/
+    # output_dir's own flat-root fallback above: with no case active,
+    # TOTH_WORKSPACE is the workspace root, so docker-compose.yml's
+    # ${TOTH_WORKSPACE}/vpn mount (toth-network only) resolves directly here
+    # rather than through the per-case symlink shim in _resolve_workspace().
+    # Docker won't reliably auto-create a missing bind-mount source, so this
+    # has to exist before `docker compose up` runs -- always empty in this
+    # state, since vpn.add_vpn_config() always requires a case name.
+    (Path(config.WORKSPACE).expanduser() / "vpn").mkdir(parents=True, exist_ok=True)
 
 
 def ensure_docker():

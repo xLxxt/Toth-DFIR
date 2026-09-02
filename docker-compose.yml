@@ -29,6 +29,15 @@ services:
     container_name: toth-malware
     network_mode: none
 
+  # toth-network is the only profile carrying VPN capability in v1
+  # (docs/roadmap-vpn.md section 3): NET_ADMIN + /dev/net/tun is a
+  # categorically larger grant than any other profile needs (section 6 of
+  # that doc), so it stays off toth-base/dfir/malware entirely rather than
+  # living unconditionally-but-idle on every profile. The extra sysctls
+  # match Exegol's precedent for containerized OpenVPN/WireGuard clients.
+  # The vpn bind mount is read-only and, like cases/output, resolves through
+  # docker_manager._resolve_workspace()'s per-case symlink shim when a case
+  # is active (see wrapper/utils/docker_manager.py, wrapper/utils/vpn.py).
   toth-network:
     image: "toth-network:${TOTH_IMAGE_VERSION:-0.2.0}"
     <<: *toth-common
@@ -37,3 +46,14 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - TOTH_VPN_DISABLE=${TOTH_VPN_DISABLE:-0}
+    volumes:
+      - ${TOTH_WORKSPACE:-./workspace}/cases:/cases
+      - ${TOTH_WORKSPACE:-./workspace}/output:/opt/toth/output
+      - ${TOTH_WORKSPACE:-./workspace}/vpn:/opt/toth/vpn:ro

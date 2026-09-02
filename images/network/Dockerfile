@@ -109,7 +109,17 @@ RUN command -v tshark \
     && command -v dumpcap
 
 # Runtime
-USER analyst
+#
+# Unlike every other Toth image, toth-network starts as root: VPN
+# auto-connect (docs/roadmap-vpn.md) needs root to bring up a tun/wg
+# interface, which the "analyst" user cannot do even with the container's
+# own cap_add grants. vpn-entrypoint.sh does at most a few read-only
+# filesystem checks, starts the tunnel only if a config is actually mounted
+# at /opt/toth/vpn, then permanently drops to "analyst" via gosu before
+# handing off to CMD -- see config/entrypoint/vpn-entrypoint.sh and
+# docs/architecture.md's Runtime model.
+USER root
 WORKDIR /cases
 
+ENTRYPOINT ["/opt/toth/scripts/vpn-entrypoint.sh"]
 CMD ["/bin/bash"]
