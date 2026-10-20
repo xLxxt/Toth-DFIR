@@ -19,6 +19,17 @@ ARG CHAINSAW_VERSION="2.16.0"
 ARG HAYABUSA_VERSION="3.9.0"
 ARG DOTNET_RUNTIME_VERSION="9.0.19"
 ARG EZTOOLS_BASE_URL="https://download.ericzimmermanstools.com/net9"
+# EZTOOLS_BASE_URL has no versioned per-release path to pin (see the comment
+# above the EZTools RUN steps below for why); these pin the SHA256 of each
+# tool's archive as downloaded from that endpoint instead, so a silent
+# upstream change fails the build rather than being installed unnoticed.
+ARG MFTECMD_SHA256="60ae857a554b830243e38e91fafdfdf6066f31c703282c5c6f40daf3b64d3160"
+ARG PECMD_SHA256="e361d397c8c64959fd537e1826fcb89ea2d6fe24b3b4b63e6666479d565caa15"
+ARG LECMD_SHA256="f3e9c799ec7d3fa4cd5f553ec3f9d544c80c8e48afd04ef43456da3d48ad0760"
+ARG JLECMD_SHA256="155ee54e6ac6b70bce1aa636ec52d0b0165263933764d9a45c85af97df546892"
+ARG SBECMD_SHA256="88edb98a32baaf68114aa106f25f999e46d387d9d0003d3222a1168cc1b7eb9b"
+ARG AMCACHEPARSER_SHA256="d40d1e7863159dbd9aa3ae826d919edc490ca33df84bde57e86da848a583af03"
+ARG RECMD_SHA256="4a4e2f4beba54fdb9ba4eeb5e6f9d323e666b309e407ac89e047f82be0c963a2"
 
 # Runtime environment
 ENV TOTH_VERSION=${TOTH_VERSION}
@@ -156,9 +167,28 @@ RUN git clone --depth 1 https://github.com/SigmaHQ/sigma.git \
 # archives are fetched from Eric Zimmerman's own official download endpoint,
 # the same one his official Get-ZimmermanTools script uses.
 #
-# Unlike Chainsaw/Hayabusa, this endpoint has no versioned URL -- it always
-# serves the current build (verified here as version 2026.5.0) -- so there
-# is no per-tool version ARG to pin.
+# Unlike Chainsaw/Hayabusa, there is no versioned-release alternative to pin
+# against instead of this endpoint (checked the GitHub API for all seven
+# tools' own repos, e.g. github.com/EricZimmerman/MFTECmd): MFTECmd, PECmd,
+# LECmd, JLECmd, and RECmd have no GitHub Releases at all (tags exist for
+# some, releases don't); AmcacheParser does have release tags but their
+# asset lists are empty (source-only zipball/tarball, no compiled DLL
+# attached); SBECmd has no dedicated GitHub repo at all in Eric Zimmerman's
+# account. download.ericzimmermanstools.com is the only place a compiled
+# build of any of these seven tools is published, and it is an unversioned
+# "always serves current build" endpoint (verified here as version
+# 2026.5.0) -- so there is no per-tool version ARG to pin the way
+# CHAINSAW_VERSION/HAYABUSA_VERSION do above.
+#
+# To still catch a silent upstream change, each ARG *_SHA256 above pins the
+# SHA256 of the exact archive downloaded from this endpoint at the time
+# this was written; the RUN steps below verify it with `sha256sum -c` and
+# fail the build on mismatch. If Eric Zimmerman legitimately updates one of
+# these tools, the build breaks until someone re-downloads the new archive,
+# recomputes its SHA256, and bumps the corresponding ARG above -- there is
+# no version signal from this endpoint to distinguish a legitimate update
+# from a compromise automatically. See docs/known-limitations.md for this
+# tradeoff.
 #
 # These ship as .NET 9 framework-dependent builds (a DLL, not a
 # self-contained native binary), so a .NET runtime is required to run them.
@@ -177,60 +207,39 @@ RUN case "${TARGETARCH}" in arm64) DOTNET_ARCH=arm64 ;; *) DOTNET_ARCH=x64 ;; es
     && ln -s /opt/toth/tools/dotnet/dotnet /usr/local/bin/dotnet \
     && rm -f /tmp/dotnet-runtime.tar.gz
 
-RUN mkdir -p /opt/toth/tools/zimmerman/MFTECmd \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/MFTECmd.zip" -o /tmp/mftecmd.zip \
-    && unzip -q /tmp/mftecmd.zip -d /opt/toth/tools/zimmerman/MFTECmd \
-    && rm -f /tmp/mftecmd.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/MFTECmd/MFTECmd.dll "$@"\n' \
-        > /usr/local/bin/mftecmd \
-    && chmod +x /usr/local/bin/mftecmd
-
-RUN mkdir -p /opt/toth/tools/zimmerman/PECmd \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/PECmd.zip" -o /tmp/pecmd.zip \
-    && unzip -q /tmp/pecmd.zip -d /opt/toth/tools/zimmerman/PECmd \
-    && rm -f /tmp/pecmd.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/PECmd/PECmd.dll "$@"\n' \
-        > /usr/local/bin/pecmd \
-    && chmod +x /usr/local/bin/pecmd
-
-RUN mkdir -p /opt/toth/tools/zimmerman/LECmd \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/LECmd.zip" -o /tmp/lecmd.zip \
-    && unzip -q /tmp/lecmd.zip -d /opt/toth/tools/zimmerman/LECmd \
-    && rm -f /tmp/lecmd.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/LECmd/LECmd.dll "$@"\n' \
-        > /usr/local/bin/lecmd \
-    && chmod +x /usr/local/bin/lecmd
-
-RUN mkdir -p /opt/toth/tools/zimmerman/JLECmd \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/JLECmd.zip" -o /tmp/jlecmd.zip \
-    && unzip -q /tmp/jlecmd.zip -d /opt/toth/tools/zimmerman/JLECmd \
-    && rm -f /tmp/jlecmd.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/JLECmd/JLECmd.dll "$@"\n' \
-        > /usr/local/bin/jlecmd \
-    && chmod +x /usr/local/bin/jlecmd
-
-RUN mkdir -p /opt/toth/tools/zimmerman/SBECmd \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/SBECmd.zip" -o /tmp/sbecmd.zip \
-    && unzip -q /tmp/sbecmd.zip -d /opt/toth/tools/zimmerman/SBECmd \
-    && rm -f /tmp/sbecmd.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/SBECmd/SBECmd.dll "$@"\n' \
-        > /usr/local/bin/sbecmd \
-    && chmod +x /usr/local/bin/sbecmd
-
-RUN mkdir -p /opt/toth/tools/zimmerman/AmcacheParser \
-    && curl -fsSL "${EZTOOLS_BASE_URL}/AmcacheParser.zip" -o /tmp/amcacheparser.zip \
-    && unzip -q /tmp/amcacheparser.zip -d /opt/toth/tools/zimmerman/AmcacheParser \
-    && rm -f /tmp/amcacheparser.zip \
-    && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/AmcacheParser/AmcacheParser.dll "$@"\n' \
-        > /usr/local/bin/amcacheparser \
-    && chmod +x /usr/local/bin/amcacheparser
+# MFTECmd, PECmd, LECmd, JLECmd, SBECmd, and AmcacheParser share an identical
+# download/verify/unpack/wrapper pattern -- loop over them so fixing that
+# pattern or adding another flat-archive EZTool is a one-place change. RECmd
+# is handled separately below: its archive has a nested Plugins/BatchExamples
+# layout the others don't, so it doesn't fit this loop cleanly.
+RUN for tool in MFTECmd PECmd LECmd JLECmd SBECmd AmcacheParser; do \
+        case "$tool" in \
+            MFTECmd) sha256="$MFTECMD_SHA256" ;; \
+            PECmd) sha256="$PECMD_SHA256" ;; \
+            LECmd) sha256="$LECMD_SHA256" ;; \
+            JLECmd) sha256="$JLECMD_SHA256" ;; \
+            SBECmd) sha256="$SBECMD_SHA256" ;; \
+            AmcacheParser) sha256="$AMCACHEPARSER_SHA256" ;; \
+        esac; \
+        wrapper="/usr/local/bin/${tool,,}"; \
+        mkdir -p "/opt/toth/tools/zimmerman/${tool}"; \
+        curl -fsSL "${EZTOOLS_BASE_URL}/${tool}.zip" -o "/tmp/${tool}.zip"; \
+        echo "${sha256}  /tmp/${tool}.zip" | sha256sum -c -; \
+        unzip -q "/tmp/${tool}.zip" -d "/opt/toth/tools/zimmerman/${tool}"; \
+        rm -f "/tmp/${tool}.zip"; \
+        printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/%s/%s.dll "$@"\n' "$tool" "$tool" \
+            > "$wrapper"; \
+        chmod +x "$wrapper"; \
+    done
 
 # RECmd's archive bundles its own Plugins/ (registry-key parsers) and
 # BatchExamples/ (.reb rule files) under a top-level RECmd/ directory,
 # unlike the flat archives above -- unzip one level up so the layout lands
-# at /opt/toth/tools/zimmerman/RECmd/{RECmd.dll,Plugins,BatchExamples}.
+# at /opt/toth/tools/zimmerman/RECmd/{RECmd.dll,Plugins,BatchExamples}. It is
+# checksum-pinned the same way as the loop above (see the SHA256 note).
 RUN mkdir -p /opt/toth/tools/zimmerman \
     && curl -fsSL "${EZTOOLS_BASE_URL}/RECmd.zip" -o /tmp/recmd.zip \
+    && echo "${RECMD_SHA256}  /tmp/recmd.zip" | sha256sum -c - \
     && unzip -q /tmp/recmd.zip -d /opt/toth/tools/zimmerman \
     && rm -f /tmp/recmd.zip \
     && printf '#!/bin/bash\nexec dotnet /opt/toth/tools/zimmerman/RECmd/RECmd.dll "$@"\n' \
@@ -252,7 +261,12 @@ RUN apt-get update \
 # (dfir runs with network_mode: none).
 RUN rkhunter --propupd
 
-# Install smoke checks
+# Install smoke checks: `command -v` only confirms a wrapper script or
+# binary exists on PATH and is executable -- it would still pass if dotnet
+# or an EZTools wrapper's hardcoded DLL path were wrong, since that failure
+# only surfaces when the tool actually runs. So for dotnet, the Sleuth Kit
+# trio, and the seven EZTools wrappers, invoke each one for real instead
+# (cheap, side-effect-free flags: --list-runtimes / -V / --help).
 RUN command -v bulk_extractor \
     && command -v pffexport \
     && command -v regripper \
@@ -263,18 +277,10 @@ RUN command -v bulk_extractor \
     && command -v lynis \
     && command -v chkrootkit \
     && command -v rkhunter \
-    && command -v fls \
-    && command -v icat \
-    && command -v mmls \
-    && command -v dotnet \
-    && command -v mftecmd \
-    && command -v pecmd \
-    && command -v lecmd \
-    && command -v jlecmd \
-    && command -v sbecmd \
-    && command -v amcacheparser \
-    && command -v recmd \
-    && test -d /opt/toth/rules/sigma
+    && test -d /opt/toth/rules/sigma \
+    && dotnet --list-runtimes \
+    && for tsk in fls icat mmls; do "$tsk" -V; done \
+    && for ez in mftecmd pecmd lecmd jlecmd sbecmd amcacheparser recmd; do "$ez" --help >/dev/null; done
 
 # Workspace and permissions
 RUN mkdir -p \
