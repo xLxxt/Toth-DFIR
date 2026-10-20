@@ -279,8 +279,8 @@ RUN command -v bulk_extractor \
     && command -v rkhunter \
     && test -d /opt/toth/rules/sigma \
     && dotnet --list-runtimes \
-    && for tsk in fls icat mmls; do "$tsk" -V; done \
-    && for ez in mftecmd pecmd lecmd jlecmd sbecmd amcacheparser recmd; do "$ez" --help >/dev/null; done
+    && for tsk in fls icat mmls; do "$tsk" -V || exit 1; done \
+    && for ez in mftecmd pecmd lecmd jlecmd sbecmd amcacheparser recmd; do "$ez" --help >/dev/null || exit 1; done
 
 # Workspace and permissions
 RUN mkdir -p \
