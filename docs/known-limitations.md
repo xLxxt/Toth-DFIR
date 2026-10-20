@@ -8,14 +8,24 @@ that users and contributors should know before relying on it in a real case.
 - The project is currently built around the `dev` branch.
 - The wrapper CLI supports `list`, `status`, `start`, `enter`, `restart`,
   `shell`, `exec`, `stop`, `remove`, `update`, `case`, and `vpn`.
-- `toth vpn add/remove/show` (see `docs/usage.md`) only stores a per-case VPN
+- `toth vpn add/remove/show` (see `docs/usage.md`) stores a per-case VPN
   config (OpenVPN `.ovpn` or WireGuard `.conf`, plus an optional OpenVPN
-  creds file) under `~/toth/workspace/vpn/<case>/`. This is the storage/CLI
-  layer only -- **no container mounts it, no tunnel gets established, and no
-  profile grants the capabilities (`NET_ADMIN`, `/dev/net/tun`) a real VPN
-  connection needs.** Wiring this into `docker_manager.py`'s symlink shim,
-  `docker-compose.yml`, and a root-first container entrypoint is deliberately
-  deferred, larger-scope follow-up work (see `docs/roadmap-vpn.md`).
+  creds file) under `~/toth/workspace/vpn/<case>/`. **Only the `network`
+  profile actually connects it.** Starting `toth-network` with an active
+  case that has a stored config auto-connects the tunnel at container start
+  (`config/entrypoint/vpn-entrypoint.sh`); `base`, `dfir`, and `malware`
+  mount nothing and grant no VPN-related capability, so a config stored
+  while one of those is the active container simply sits unused until you
+  switch to `toth-network`. Extending auto-connect to `dfir` is explicit
+  future work with its own review (`docs/roadmap-vpn.md` section 3), not
+  done yet. `toth vpn show`/`toth vpn remove` work regardless of which
+  profile is active — they only touch host-side storage.
+- VPN connection status (`toth-network` container logs, prefixed
+  `[vpn-entrypoint]`) is not surfaced by any wrapper command yet; check it
+  with `docker logs toth-network` or inside the container with
+  `ip addr`/`wg show`. `TOTH_VPN_DISABLE=1` (set before `toth start
+  network`/`toth shell network`) skips auto-connect for debugging a broken
+  tunnel.
 - Per-profile image/tag overrides for the four built-in profiles are
   supported via `.env` (`TOTH_PROFILE_<NAME>_IMAGE` /
   `TOTH_PROFILE_<NAME>_TAG`, see `docs/usage.md`). Defining entirely new,

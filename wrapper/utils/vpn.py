@@ -16,7 +16,14 @@ def _workspace():
     return Path(config.WORKSPACE).expanduser()
 
 
-def _vpn_dir(case_name):
+def vpn_dir(case_name):
+    """Path to a case's VPN directory, whether or not anything is in it yet.
+
+    Pure path construction, no validation and no filesystem access -- mirrors
+    case.case_paths()'s style so callers like docker_manager's mount shim can
+    resolve a symlink target for a case without pulling in vpn_paths()'s
+    case-existence check.
+    """
     return _workspace() / "vpn" / case_name
 
 
@@ -35,9 +42,9 @@ def vpn_paths(case_name):
     "openvpn", "wireguard", or None if no config is present.
     """
     _require_case(case_name)
-    vpn_dir = _vpn_dir(case_name)
-    ovpn_path = vpn_dir / CONFIG_FILENAMES["openvpn"]
-    wg_path = vpn_dir / CONFIG_FILENAMES["wireguard"]
+    case_vpn_dir = vpn_dir(case_name)
+    ovpn_path = case_vpn_dir / CONFIG_FILENAMES["openvpn"]
+    wg_path = case_vpn_dir / CONFIG_FILENAMES["wireguard"]
 
     if ovpn_path.is_file():
         config_path, kind = ovpn_path, "openvpn"
@@ -46,7 +53,7 @@ def vpn_paths(case_name):
     else:
         return None, None, None
 
-    creds_path = vpn_dir / CREDS_FILENAME
+    creds_path = case_vpn_dir / CREDS_FILENAME
     creds_path = creds_path if creds_path.is_file() else None
     return config_path, creds_path, kind
 
@@ -82,8 +89,8 @@ def add_vpn_config(case_name, source_file, creds_file=None, force=False):
             ".ovpn (OpenVPN) or .conf (WireGuard)"
         )
 
-    vpn_dir = _vpn_dir(case_name)
-    dest_config = vpn_dir / CONFIG_FILENAMES[kind]
+    case_vpn_dir = vpn_dir(case_name)
+    dest_config = case_vpn_dir / CONFIG_FILENAMES[kind]
 
     existing_config, _existing_creds, _existing_kind = vpn_paths(case_name)
     if existing_config is not None and not force:
@@ -100,20 +107,20 @@ def add_vpn_config(case_name, source_file, creds_file=None, force=False):
             raise SystemExit(f"[!] VPN creds file not found: {creds_source}")
         creds_path = creds_source
 
-    vpn_dir.mkdir(parents=True, exist_ok=True)
+    case_vpn_dir.mkdir(parents=True, exist_ok=True)
 
     # If switching kinds (e.g. previously OpenVPN, now WireGuard), clear out
     # the other kind's stale config so vpn_paths() doesn't see two configs.
     for other_kind, filename in CONFIG_FILENAMES.items():
         if other_kind != kind:
-            (vpn_dir / filename).unlink(missing_ok=True)
+            (case_vpn_dir / filename).unlink(missing_ok=True)
 
     # Config files can embed private keys/certificates (common OpenVPN
     # practice), so lock them down the same way creds.txt already is,
     # rather than leaving them at the process's default umask.
     _copy_restricted(source_path, dest_config)
 
-    dest_creds = vpn_dir / CREDS_FILENAME
+    dest_creds = case_vpn_dir / CREDS_FILENAME
     if creds_path is not None:
         _copy_restricted(creds_path, dest_creds)
     else:
@@ -126,9 +133,9 @@ def remove_vpn_config(case_name):
     """Delete a case's vpn dir contents, if any. Returns True if something
     was actually removed, False if there was nothing to remove."""
     _require_case(case_name)
-    vpn_dir = _vpn_dir(case_name)
-    if vpn_dir.is_dir():
-        shutil.rmtree(vpn_dir)
+    case_vpn_dir = vpn_dir(case_name)
+    if case_vpn_dir.is_dir():
+        shutil.rmtree(case_vpn_dir)
         return True
     return False
 

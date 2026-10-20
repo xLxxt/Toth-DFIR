@@ -42,9 +42,12 @@ following rules govern when and how it may be relaxed:
   case, needed it. `dfir` is `config.DEFAULT_PROFILE`, so a blanket change
   here would silently affect every analyst's default container; opt-in per
   case avoids that.
-- **`network` stays `bridge` with `NET_ADMIN`/`NET_RAW`**, unchanged — this
-  predates the policy above and remains scoped to its original purpose
-  (packet capture).
+- **`network` stays `bridge` with `NET_ADMIN`/`NET_RAW`** for packet capture
+  (unchanged, predates the policy above), and is also, as of the VPN work,
+  the only profile carrying VPN capability: `/dev/net/tun` plus two sysctls
+  (`net.ipv6.conf.all.disable_ipv6=0`, `net.ipv4.conf.all.src_valid_mark=1`)
+  scoped to `toth-network` alone in `docker-compose.yml`. `base`/`dfir`/
+  `malware` get none of this. See "VPN auto-connect" below.
 - **Capability tier matters, not just "network or not."** Plain outbound
   HTTPS/websocket access (threat-intel API calls, a future noVNC browser
   bridge, cloud-provider API calls) is one tier. `NET_ADMIN` plus raw
@@ -72,17 +75,90 @@ before invoking `docker compose`:
   resolve to the flat `cases/` and `output/` directories (legacy behavior,
   unchanged).
 - An active case: the real per-case directories live at
-  `<workspace>/cases/<name>/` and `<workspace>/output/<name>/`
-  (`wrapper/utils/case.py`). Since those are two independent trees that a
-  single "root + fixed suffix" pattern can't address directly, the wrapper
-  points `TOTH_WORKSPACE` at a small per-case shim directory
-  (`<workspace>/.case-mounts/<name>/`) holding `cases` and `output`
-  symlinks into the real directories. `docker-compose.yml` stays untouched
-  and `docker compose` is still used, not raw `docker run`.
+  `<workspace>/cases/<name>/`, `<workspace>/output/<name>/`, and
+  `<workspace>/vpn/<name>/` (`wrapper/utils/case.py`, `wrapper/utils/vpn.py`).
+  Since those are independent trees that a single "root + fixed suffix"
+  pattern can't address directly, the wrapper points `TOTH_WORKSPACE` at a
+  small per-case shim directory (`<workspace>/.case-mounts/<name>/`) holding
+  `cases`, `output`, and `vpn` symlinks into the real directories.
+  `docker-compose.yml` stays untouched and `docker compose` is still used,
+  not raw `docker run`. The `vpn` symlink (and its target directory) is
+  created even for cases with no VPN config stored, so `toth-network`'s
+  `/opt/toth/vpn:ro` bind mount always has a source to mount — an empty
+  directory there is exactly what "no VPN configured for this case" looks
+  like at the container boundary.
 
 Case state itself (`$TOTH_WORKSPACE/.active-case`) is separate from the
 repo's `.env`: `.env` holds static per-profile configuration, while the
 active case is mutable runtime state scoped to the workspace.
+
+### VPN auto-connect (toth-network)
+
+`toth vpn add <case> <file.ovpn|file.conf>` (see `docs/usage.md`) only
+stores a config; `toth-network` is what actually connects it, automatically,
+at container start:
+
+- **Capability grant is `toth-network`-only.** `docker-compose.yml` adds
+  `/dev/net/tun` and the two sysctls only to that service, on top of its
+  pre-existing `NET_ADMIN`/`NET_RAW`/`bridge`. `base`/`dfir`/`malware` are
+  untouched — no VPN mount, no new capability, no behavior change. Extending
+  this to `dfir` is out of scope for v1 (`docs/roadmap-vpn.md` section 3)
+  and would need its own review.
+- **Root-first entrypoint, `toth-network` only.** Every other Toth image
+  runs `CMD` directly as the non-root `analyst` user. Bringing up a
+  tun/WireGuard interface needs root, which `analyst` cannot get just
+  because the container has `NET_ADMIN` (a capability granted to the
+  container's root UID by default is not inherited by an unprivileged user
+  inside it). `images/network/Dockerfile` is the only Dockerfile that sets
+  `USER root` as its final runtime user and declares
+  `ENTRYPOINT ["/opt/toth/scripts/vpn-entrypoint.sh"]`
+  (`config/entrypoint/vpn-entrypoint.sh`, shared source copied into every
+  image via `images/base/Dockerfile` but only ever invoked here). The script:
+  1. Checks `/opt/toth/vpn/` for `config.ovpn` or `config.conf`; if neither
+     is present (no VPN config for the active case, or no case active), it
+     no-ops immediately.
+  2. If found, starts `openvpn --daemon` (with `--auth-user-pass` when a
+     `creds.txt` is present) or copies the WireGuard config to
+     `/etc/wireguard/wg0.conf` and runs `wg-quick up wg0`. A failure here is
+     logged and does not stop the container from starting — an analyst still
+     gets a shell to debug a broken tunnel by hand.
+  3. Always ends with `exec gosu analyst "$@"`, permanently dropping to the
+     unprivileged user before handing off to `CMD`.
+  **A VPN config is analyst-supplied and often third-party (a CTF platform,
+  an engagement contact) — Toth does not extend trust to its *content* just
+  because it trusts the analyst who added it**, so the entrypoint does not
+  treat either config format as inert data:
+  - WireGuard's `PreUp`/`PostUp`/`PreDown`/`PostDown` directives are shell
+    commands `wg-quick` runs as whoever invokes it (root, here). The
+    entrypoint refuses to start any config containing one of these
+    directives rather than executing arbitrary root code sourced from a
+    config file — an analyst who genuinely needs one has to bring the
+    tunnel up by hand (`TOTH_VPN_DISABLE=1`, below).
+  - An `.ovpn` file can request its own `script-security 2`+ plus `up`/
+    `down`/`route-up` script directives, the same
+    config-controls-its-own-code-exec-privilege pattern gated behind an
+    extra opt-in line. The entrypoint forces `--script-security 1` (the
+    OpenVPN default: only its own built-in `ip`/`route` calls, no
+    user-defined scripts) after `--config`, so this always wins regardless
+    of what the file requests.
+  - `openvpn` also gets `--user analyst --group analyst --persist-tun
+    --persist-key`, so the daemon itself drops to `analyst` once the tun
+    device is open, rather than running as root for its entire connected
+    lifetime (OpenVPN's own documented unprivileged-daemon pattern). Without
+    this, "no long-lived root process" would be true for the WireGuard path
+    (`wg-quick` exits once the interface is up) but false for OpenVPN, whose
+    `--daemon` process otherwise keeps running as root indefinitely.
+  With both of the above in place, there is no long-lived root process for
+  either VPN kind, and the interactive shell an analyst actually uses runs
+  as `analyst`, exactly as on every other profile.
+  `TOTH_VPN_DISABLE=1` (passed through from the host environment via
+  `docker-compose.yml`) skips step 2 entirely, as an escape hatch for
+  debugging a broken tunnel without depending on the very entrypoint that's
+  failing.
+- **Openvpn/wireguard-tools/gosu packages live in `images/base/Dockerfile`**
+  (shared, cheap, apply to every profile) even though only `toth-network`
+  uses them — same reasoning already applied to other base-layer tooling.
+  Only the capability grant and the entrypoint invocation are scoped.
 
 ### GUI apps (X11 forwarding)
 

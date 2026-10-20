@@ -4,11 +4,23 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import case, config
+from utils import case, config, vpn
 
 
 class DockerError(RuntimeError):
     pass
+
+
+# Every Toth image's intended interactive user, regardless of which user the
+# image itself is configured to default to. This matters concretely for
+# toth-network: its ENTRYPOINT needs to start as root (to bring up a VPN
+# tunnel), so its image-level USER is root -- but `docker exec`/`docker
+# compose exec` use the image's configured default user, not whatever user
+# the entrypoint-spawned foreground process ends up running as after
+# dropping privileges. Without an explicit --user here, every `toth exec
+# network`/`toth shell network`/`toth enter network` would silently run as
+# root, even though the container's own PID 1 correctly runs as analyst.
+ANALYST_USER = "analyst"
 
 
 def _ensure_case_mount_link(link_path, target_dir):
@@ -34,12 +46,15 @@ def _resolve_workspace():
     ${TOTH_WORKSPACE}/output. With no active case, TOTH_WORKSPACE is the
     workspace root, so those mounts resolve to the legacy flat directories
     (unchanged behavior). With an active case, the real per-case
-    directories live at <workspace>/cases/<name> and
-    <workspace>/output/<name> (see utils.case) -- two independent trees
-    that a single "root + fixed suffix" pattern can't reach directly. To
-    keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a small
-    per-case shim directory containing "cases" and "output" symlinks into
-    those real directories.
+    directories live at <workspace>/cases/<name>, <workspace>/output/<name>,
+    and <workspace>/vpn/<name> (see utils.case, utils.vpn) -- independent
+    trees that a single "root + fixed suffix" pattern can't reach directly.
+    To keep docker-compose.yml untouched, TOTH_WORKSPACE is pointed at a
+    small per-case shim directory containing "cases", "output", and "vpn"
+    symlinks into those real directories. The vpn symlink is created (and
+    its target directory created if it doesn't exist yet) even for cases
+    with no VPN config, so a future VPN bind-mount always has something to
+    mount rather than failing on a missing source path.
     """
     workspace = Path(config.WORKSPACE).expanduser()
     active = case.active_case()
@@ -51,6 +66,7 @@ def _resolve_workspace():
     mount_root.mkdir(parents=True, exist_ok=True)
     _ensure_case_mount_link(mount_root / "cases", cases_dir)
     _ensure_case_mount_link(mount_root / "output", output_dir)
+    _ensure_case_mount_link(mount_root / "vpn", vpn.vpn_dir(active))
     return str(mount_root)
 
 
@@ -90,6 +106,15 @@ def ensure_workspace():
     cases_dir, output_dir = case.case_paths(case.active_case())
     cases_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    # Flat vpn root for the no-active-case state, mirroring cases_dir/
+    # output_dir's own flat-root fallback above: with no case active,
+    # TOTH_WORKSPACE is the workspace root, so docker-compose.yml's
+    # ${TOTH_WORKSPACE}/vpn mount (toth-network only) resolves directly here
+    # rather than through the per-case symlink shim in _resolve_workspace().
+    # Docker won't reliably auto-create a missing bind-mount source, so this
+    # has to exist before `docker compose up` runs -- always empty in this
+    # state, since vpn.add_vpn_config() always requires a case name.
+    (Path(config.WORKSPACE).expanduser() / "vpn").mkdir(parents=True, exist_ok=True)
 
 
 def ensure_docker():
@@ -222,7 +247,7 @@ def stop(svc):
 
 
 def shell(svc, command, gui=False):
-    return _compose(["exec", svc] + command, gui=gui)
+    return _compose(["exec", "--user", ANALYST_USER, svc] + command, gui=gui)
 
 
 def enter(svc, command):
@@ -232,7 +257,7 @@ def enter(svc, command):
     if start_result.returncode != 0:
         _print_process_output(start_result)
         return start_result.returncode
-    exec_flags = ["-i"]
+    exec_flags = ["-i", "--user", ANALYST_USER]
     if sys.stdin.isatty():
         exec_flags.append("-t")
     return _run(["exec"] + exec_flags + [svc] + command)

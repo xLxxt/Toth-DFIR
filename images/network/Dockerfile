@@ -43,31 +43,29 @@ WORKDIR /opt/toth/tools
 # This single setcap line does by hand what the interactive postinst prompt
 # would have done, and was confirmed by direct testing during the scoping
 # above to fix non-root `dumpcap`/`tshark` capture, not just Wireshark GUI.
+#
+# dnstwist is included here too: prefer the apt package, fall back to pip if
+# the Ubuntu universe package is unavailable -- no second apt-get update
+# needed for the same cache.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        tshark \
-        tcpdump \
-        nmap \
-        netcat-openbsd \
-        whois \
-        ngrep \
-        tcpflow \
-        wireshark-common \
-        wireshark \
-        libcap2-bin \
-        software-properties-common \
-        gnupg \
+    && ( \
+        apt-get install -y --no-install-recommends \
+            tshark \
+            tcpdump \
+            nmap \
+            netcat-openbsd \
+            whois \
+            ngrep \
+            tcpflow \
+            wireshark-common \
+            wireshark \
+            libcap2-bin \
+            software-properties-common \
+            gnupg \
+            dnstwist \
+        || pip3 install --no-cache-dir dnstwist \
+    ) \
     && setcap cap_net_raw,cap_net_admin+eip /usr/bin/dumpcap \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# dnstwist: try apt (Ubuntu universe) first, fall back to pip
-RUN apt-get update \
-    && if apt-get install -y --no-install-recommends dnstwist; then \
-        true; \
-    else \
-        pip3 install --no-cache-dir dnstwist; \
-    fi \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -111,7 +109,17 @@ RUN command -v tshark \
     && command -v dumpcap
 
 # Runtime
-USER analyst
+#
+# Unlike every other Toth image, toth-network starts as root: VPN
+# auto-connect (docs/roadmap-vpn.md) needs root to bring up a tun/wg
+# interface, which the "analyst" user cannot do even with the container's
+# own cap_add grants. vpn-entrypoint.sh does at most a few read-only
+# filesystem checks, starts the tunnel only if a config is actually mounted
+# at /opt/toth/vpn, then permanently drops to "analyst" via gosu before
+# handing off to CMD -- see config/entrypoint/vpn-entrypoint.sh and
+# docs/architecture.md's Runtime model.
+USER root
 WORKDIR /cases
 
+ENTRYPOINT ["/opt/toth/scripts/vpn-entrypoint.sh"]
 CMD ["/bin/bash"]
