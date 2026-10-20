@@ -75,6 +75,21 @@ that users and contributors should know before relying on it in a real case.
   official .NET runtime from Microsoft's direct per-architecture tarball,
   which is published for both `amd64` and `arm64`, so this does not become a
   `diec`-style single-arch carve-out.
+- Eric Zimmerman's tools are fetched from `download.ericzimmermanstools.com`,
+  an unversioned "always serves current build" endpoint -- none of the seven
+  tools publish a versioned GitHub Release with a compiled Linux binary
+  attached (checked each tool's own repo via the GitHub API: most have no
+  Releases at all, AmcacheParser's release tags carry empty asset lists, and
+  SBECmd has no dedicated repo), so there is no versioned alternative to pin
+  against the way Chainsaw/Hayabusa do. The `dfir` image instead pins a
+  SHA256 of each tool's archive (the `*_SHA256` `ARG`s in
+  `images/dfir/Dockerfile`) and verifies it at build time with
+  `sha256sum -c`, so an unexpected change to the downloaded archive fails the
+  build instead of being installed silently. The tradeoff: there is no
+  version signal from this endpoint to tell a legitimate Eric Zimmerman
+  update apart from anything else, so a real upstream update also fails the
+  build, and whoever hits that failure must re-download the new archive,
+  recompute its SHA256, and manually bump the corresponding `ARG`.
 - Some upstream forensic tools may change archive names, checksums, package
   dependencies, or Python compatibility without notice.
 
