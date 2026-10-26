@@ -4,7 +4,7 @@
 # from .env / environment, so `toth run <profile>` uses the matching tag.
 
 x-toth-common: &toth-common
-  image: "toth-base:${TOTH_IMAGE_VERSION:-0.2.0}"
+  image: "${TOTH_PROFILE_BASE_IMAGE:-toth-base:${TOTH_PROFILE_BASE_TAG:-${TOTH_IMAGE_VERSION:-0.2.0}}}"
   stdin_open: true
   tty: true
   volumes:
@@ -18,13 +18,13 @@ services:
     network_mode: none
 
   toth-dfir:
-    image: "toth-dfir:${TOTH_IMAGE_VERSION:-0.2.0}"
+    image: "${TOTH_PROFILE_DFIR_IMAGE:-toth-dfir:${TOTH_PROFILE_DFIR_TAG:-${TOTH_IMAGE_VERSION:-0.2.0}}}"
     <<: *toth-common
     container_name: toth-dfir
     network_mode: none
 
   toth-malware:
-    image: "toth-malware:${TOTH_IMAGE_VERSION:-0.2.0}"
+    image: "${TOTH_PROFILE_MALWARE_IMAGE:-toth-malware:${TOTH_PROFILE_MALWARE_TAG:-${TOTH_IMAGE_VERSION:-0.2.0}}}"
     <<: *toth-common
     container_name: toth-malware
     network_mode: none
@@ -39,7 +39,7 @@ services:
   # docker_manager._resolve_workspace()'s per-case symlink shim when a case
   # is active (see wrapper/utils/docker_manager.py, wrapper/utils/vpn.py).
   toth-network:
-    image: "toth-network:${TOTH_IMAGE_VERSION:-0.2.0}"
+    image: "${TOTH_PROFILE_NETWORK_IMAGE:-toth-network:${TOTH_PROFILE_NETWORK_TAG:-${TOTH_IMAGE_VERSION:-0.2.0}}}"
     <<: *toth-common
     container_name: toth-network
     network_mode: bridge

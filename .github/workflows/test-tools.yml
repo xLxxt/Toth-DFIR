@@ -10,6 +10,7 @@ on:
       - "config/**"
       - "tools/**"
       - "wrapper/**"
+      - "tests/**"
 
 jobs:
   compose-config:
@@ -18,7 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate docker-compose.yml
-        run: docker compose config
+        run: docker compose -f docker-compose.yml config
+      - name: Test profile image overrides
+        run: python3 tests/test_image_overrides.py
 
   image-tools:
     name: Build and test ${{ matrix.profile }} image
